@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 群聊室</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="chat-container">
+        <div id="chat-header">
+            <h1>AI 群聊室</h1>
+            <div id="controls-area">
+                 <select id="chat-session-select" title="选择聊天记录"></select>
+                 <div id="ai-status">
+                     <!-- AI 状态或按钮将动态添加到这里 -->
+                 </div>
+            </div>
+        </div>
+        <div id="chat-messages">
+            <!-- 聊天消息将显示在这里 -->
+        </div>
+        <div id="input-wrapper"> <!-- Add a wrapper for better layout control -->
+            <div id="image-preview-area" style="display: none;">
+                 <img id="image-preview" src="#" alt="图片预览" />
+                 <button id="remove-image-button" title="移除图片">×</button>
+            </div>
+            <div id="chat-input-area">
+                <input type="file" id="image-input" accept="image/*" style="display: none;" />
+                <button id="attach-image-button" title="添加图片">📎</button>
+                <textarea id="message-input" placeholder="输入你的消息..." rows="1"></textarea> <!-- Start with 1 row -->
+                <button id="send-button" title="发送消息">发送</button>
+                <button id="new-chat-button" title="开始新的聊天">新聊天</button>
+                <div id="ai-buttons" style="display: none;">
+                    <!-- AI 发言按钮将动态添加到这里 (用于 ButtonSend 模式) -->
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
