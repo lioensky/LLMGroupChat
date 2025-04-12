@@ -519,13 +519,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
 
             case 'shuffledQueue':
-                if (aiTurnOrder.length === 0) {
-                    // Generate a new shuffled order if the queue is empty
-                    aiTurnOrder = activeModels.map((_, index) => index).sort(() => Math.random() - 0.5);
-                }
-                const nextShuffledIndex = aiTurnOrder.shift(); // Get and remove the next AI index
-                await callAiApi(activeModels[nextShuffledIndex]);
-                break;
+                 console.log("Shuffled Queue: All AIs responding in random order this turn.");
+                 // Generate a new shuffled order of indices for *this turn*
+                 const shuffledIndicesThisTurn = activeModels.map((_, index) => index).sort(() => Math.random() - 0.5);
+
+                 // Call all active models sequentially according to the shuffled order
+                 for (const modelIndex of shuffledIndicesThisTurn) {
+                     if(activeModels[modelIndex]) {
+                          // --- DEBUGGING START (Optional, can be removed later) ---
+                          console.log(`--- Calling AI (Shuffled): ${activeModels[modelIndex].Name} ---`);
+                          console.log("Current chatHistory before call:", JSON.stringify(chatHistory.slice(), null, 2));
+                          // --- DEBUGGING END ---
+                          await callAiApi(activeModels[modelIndex]);
+                           // --- DEBUGGING START (Optional) ---
+                          console.log(`Current chatHistory after call for ${activeModels[modelIndex].Name}:`, JSON.stringify(chatHistory.slice(), null, 2));
+                          // --- DEBUGGING END ---
+                     } else {
+                          console.error(`Shuffled Queue: Invalid model index ${modelIndex}`);
+                     }
+                 }
+                 break;
 
             case 'randomSubsetQueue':
                 // Decide how many AIs respond (e.g., 1 to all active AIs)
