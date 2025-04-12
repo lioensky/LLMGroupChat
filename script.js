@@ -594,7 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /** Construct prompt and call the AI API */
     /** Construct prompt and call the AI API (handles multimodal) */
-    async function callAiApi(model) {
+    async function callAiApi(model, retryCount = 0) {
         if (!model) {
             console.error("Attempted to call API with an invalid model.");
             // Reset state if necessary, depending on the mode
@@ -604,9 +604,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return;
         }
+        
+        // 显示重试信息（如果是重试的话）
+        const retryText = retryCount > 0 ? `(重试 ${retryCount}/2)` : '';
+        console.log(`Calling API for: ${model.Name} ${retryText}`);
+        if (retryCount > 0) {
+            updateLoadingMessage(model.Name, `重新连接中${retryText}...`, false);
+        } else {
+            appendMessage(model.Name, '...', false, true); // 首次尝试时显示加载指示器
+        }
 
-        console.log(`Calling API for: ${model.Name}`);
-        appendMessage(model.Name, '...', false, true); // Show loading indicator
+        // 已在函数开始处处理了加载指示器和日志
 
         // 1. Construct System Prompt
         // Replace placeholder for time - consider a more robust templating method if needed
@@ -748,8 +756,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Handle HTTP errors (e.g., 4xx, 5xx)
                 const errorData = await response.json().catch(() => ({ message: response.statusText })); // Try to parse error JSON
                 console.error(`API Error for ${model.Name}: ${response.status}`, errorData);
-                updateLoadingMessage(model.Name, `错误: ${errorData.message || response.statusText}`);
-                chatHistory.push({ role: 'assistant', name: model.Name, content: { text: `错误: ${errorData.message || response.statusText}` } });
+                
+                // 实现HTTP错误的重试逻辑，最多重试2次
+                if (retryCount < 2) {
+                    console.log(`Retrying API call for ${model.Name} after HTTP error ${response.status}, attempt ${retryCount + 1}/2`);
+                    // 短暂延迟后重试
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return await callAiApi(model, retryCount + 1);
+                }
+                
+                // 所有重试都失败后，显示错误信息
+                updateLoadingMessage(model.Name, `错误: ${errorData.message || response.statusText} (已重试${retryCount}次)`, true);
+                chatHistory.push({ role: 'assistant', name: model.Name, content: { text: `错误: ${errorData.message || response.statusText} (已重试${retryCount}次)` } });
                 saveChatHistory();
                 // Reset state only if NOT in ButtonSend mode, as user might retry
                  if (config.AI_CHAT_MODE !== 'ButtonSend') {
@@ -813,18 +831,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error(`Error calling API for ${model.Name}:`, error);
-             let errorMessage = "API 请求失败";
-             if (error.name === 'TimeoutError') {
-                 errorMessage = "API 请求超时";
-             } else if (error instanceof TypeError) {
-                 // Network error, CORS, etc.
-                 errorMessage = "网络错误或无法连接到 API";
-             }
-             updateLoadingMessage(model.Name, `错误: ${errorMessage}`);
-             // Add error message to the *current* session's history
-             chatHistory.push({ role: 'assistant', name: model.Name, content: `错误: ${errorMessage}` });
-             // Save the updated history for the active session
-             saveChatHistory(); // This now saves the active session within allChatData
+            // 实现重试逻辑，最多重试2次
+            if (retryCount < 2) {
+                console.log(`Retrying API call for ${model.Name}, attempt ${retryCount + 1}/2`);
+                // 短暂延迟后重试
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                return await callAiApi(model, retryCount + 1);
+            }
+            
+            // 所有重试都失败后，显示错误信息
+            let errorMessage = "API 请求失败";
+            if (error.name === 'TimeoutError') {
+                errorMessage = "API 请求超时";
+            } else if (error instanceof TypeError) {
+                // Network error, CORS, etc.
+                errorMessage = "网络错误或无法连接到 API";
+            }
+            updateLoadingMessage(model.Name, `错误: ${errorMessage} (已重试${retryCount}次)`);
+            // Add error message to the *current* session's history
+            chatHistory.push({ role: 'assistant', name: model.Name, content: { text: `错误: ${errorMessage} (已重试${retryCount}次)` } });
+            // Save the updated history for the active session
+            saveChatHistory(); // This now saves the active session within allChatData
         } finally {
              // Reset responding state *only* if not in ButtonSend mode OR if it was the last AI in a sequence/subset
              // In ButtonSend, the user might click another button immediately.
