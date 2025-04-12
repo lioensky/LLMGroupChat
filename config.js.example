@@ -2,7 +2,8 @@
 const config = {
     API_URl: "http://localhost:3000",
     API_Key: "your-key",
-    API_Timeout: 20, // 秒
+    API_Timeout: 60, // 秒
+    StreamingOutput: false,//开启流式输出
     AI_LIST: 3,
     AI_CHAT_MODE: "sequentialQueue", // 可选值: sequentialQueue, shuffledQueue, randomSubsetQueue, ButtonSend
 // # sequentialQueue 按AI编号顺序发言 # shuffledQueue 按编号随机顺序发言 # randomSubsetQueue 随机几个模型发言(并不会让所有list中的AI都发言，每次发言ai数量也是随机的) # ButtonSend 根据用户点击对应编号的AI发言按钮来让ai发言(请在界面提供每个AImodel的邀请发言按钮)	
