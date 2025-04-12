@@ -711,7 +711,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 messages: messages,
                 max_tokens: model.Outputtoken || 1500,
                 temperature: model.Temperature || 0.7,
-                stream: true
+                stream: config.StreamingOutput // 根据配置决定是否流式输出
             };
 
             // --- Temporarily disabling tool addition for debugging ---
@@ -781,54 +781,69 @@ document.addEventListener('DOMContentLoaded', () => {
                 return; // Stop processing for this AI
             }
 
-            // Process the stream
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let accumulatedResponse = "";
-            let buffer = ""; // Buffer for incomplete chunks
+            if (config.StreamingOutput) {
+                // Process the stream
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let accumulatedResponse = "";
+                let buffer = ""; // Buffer for incomplete chunks
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-                buffer += decoder.decode(value, { stream: true });
+                    buffer += decoder.decode(value, { stream: true });
 
-                // Process line by line (SSE format: data: {...}\n\n)
-                const lines = buffer.split('\n');
-                buffer = lines.pop(); // Keep the potentially incomplete last line
+                    // Process line by line (SSE format: data: {...}\n\n)
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Keep the potentially incomplete last line
 
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const dataString = line.substring(6).trim();
-                        if (dataString === '[DONE]') {
-                            break; // Stream finished
-                        }
-                        try {
-                            const chunk = JSON.parse(dataString);
-                            if (chunk.choices && chunk.choices[0].delta && chunk.choices[0].delta.content) {
-                                const contentPiece = chunk.choices[0].delta.content;
-                                if (contentPiece) { // Ensure contentPiece is not null/undefined
-                                    accumulatedResponse += contentPiece;
-                                    // Update the UI incrementally
-                                    updateLoadingMessage(model.Name, accumulatedResponse + "...", false); // isFinalUpdate = false
-                                }
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const dataString = line.substring(6).trim();
+                            if (dataString === '[DONE]') {
+                                // Explicitly break inner loop, outer loop will break on next read()
+                                break;
                             }
-                        } catch (error) {
-                            console.error('Error parsing stream chunk:', error, 'Data:', dataString);
+                            try {
+                                const chunk = JSON.parse(dataString);
+                                if (chunk.choices && chunk.choices[0].delta && chunk.choices[0].delta.content) {
+                                    const contentPiece = chunk.choices[0].delta.content;
+                                    if (contentPiece) { // Ensure contentPiece is not null/undefined
+                                        accumulatedResponse += contentPiece;
+                                        // Update the UI incrementally
+                                        updateLoadingMessage(model.Name, accumulatedResponse + "...", false); // isFinalUpdate = false
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Error parsing stream chunk:', error, 'Data:', dataString);
+                            }
                         }
                     }
+                     // Check if [DONE] was processed in the inner loop
+                     if (buffer.includes('[DONE]') || lines.some(l => l.includes('[DONE]'))) {
+                         break;
+                     }
                 }
+                 // Final update after stream ends
+                updateLoadingMessage(model.Name, accumulatedResponse, true); // isFinalUpdate = true
+
+                // Add final AI response to history and save
+                chatHistory.push({ role: 'assistant', name: model.Name, content: { text: accumulatedResponse } });
+                saveChatHistory();
+
+            } else {
+                // Process non-streamed response
+                const responseData = await response.json();
+                const fullContent = responseData.choices?.[0]?.message?.content || "未能获取响应内容";
+
+                // Update UI once with the full response
+                updateLoadingMessage(model.Name, fullContent, true); // isFinalUpdate = true
+
+                // Add final AI response to history and save
+                chatHistory.push({ role: 'assistant', name: model.Name, content: { text: fullContent } });
+                saveChatHistory();
             }
-             // Final update after stream ends
-            updateLoadingMessage(model.Name, accumulatedResponse, true); // isFinalUpdate = true
-
-            // Add final AI response to history and save
-            // Add final AI response to the *current* session's history in the correct format
-            chatHistory.push({ role: 'assistant', name: model.Name, content: { text: accumulatedResponse } });
-            // Save the updated history for the active session
-            saveChatHistory(); // This now saves the active session within allChatData
-
-
         } catch (error) {
             console.error(`Error calling API for ${model.Name}:`, error);
             // 实现重试逻辑，最多重试2次
