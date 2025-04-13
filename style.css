@@ -10,10 +10,10 @@ body {
 }
 
 #chat-container {
-    width: 90%;
-    max-width: 800px;
-    height: 90vh;
-    max-height: 900px;
+    width: 95%; /* 左右加宽多一点 */
+    max-width: 1000px; /* 左右加宽多一点 */
+    height: 92vh; /* 上下加高一点点 */
+    max-height: 950px; /* 上下加高一点点 */
     background-color: #fff;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);

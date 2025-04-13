@@ -1,3 +1,15 @@
+// --- Configuration Files ---
+const availableConfigs = [
+    { name: "默认配置", file: "config_default.js" },
+    { name: "配置 1", file: "config1.js" },
+    { name: "配置 2", file: "config2.js" }
+];
+const CONFIG_STORAGE_KEY = 'selectedConfigFile';
+
+// --- Global config variable ---
+// This will be populated when the selected config file is loaded.
+let config = null;
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
     const chatMessages = document.getElementById('chat-messages');
@@ -7,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiStatusDiv = document.getElementById('ai-status');
     const aiButtonsDiv = document.getElementById('ai-buttons');
     const sessionSelect = document.getElementById('chat-session-select');
+    const configSelect = document.getElementById('config-select'); // Get config selector
     // Image related elements
     const attachImageButton = document.getElementById('attach-image-button');
     const imageInput = document.getElementById('image-input');
@@ -15,10 +28,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const removeImageButton = document.getElementById('remove-image-button');
 
     // --- Configuration ---
-    // config is loaded globally from config.js
-    const activeModels = config.getActiveModels();
-    let currentAiIndex = 0; // For sequentialQueue mode
-    let aiTurnOrder = []; // For shuffledQueue and randomSubsetQueue modes
+    // --- Configuration (These will be initialized AFTER config is loaded) ---
+    let activeModels = [];
+    let currentAiIndex = 0;
+    let aiTurnOrder = [];
 
     // --- State ---
     let allChatData = { sessions: {}, activeSessionId: null }; // Holds all sessions and the active one
@@ -28,22 +41,28 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedImageBase64 = null; // To store the selected image data
 
     // --- Constants ---
-    const CHAT_DATA_KEY = 'aiGroupChatData'; // New key for all data
+    const CHAT_DATA_KEY = 'aiGroupChatData';
 
     // --- Initialization ---
     // --- Initialization ---
-    loadAllChatData(); // Load all session data
-    initializeSessions(); // Ensure at least one session exists and set active
-    populateSessionSelect(); // Populate the dropdown
-    switchSession(activeSessionId); // Load and display the active session
-    updateAiStatus();
-    setupAiButtons(); // Setup buttons for ButtonSend mode visibility control
-    adjustTextareaHeight(); // Initial adjustment
+    // 1. Setup Config Selector FIRST
+    populateConfigSelect();
+    const selectedConfigFile = localStorage.getItem(CONFIG_STORAGE_KEY) || availableConfigs[0].file; // Default to first config
+    configSelect.value = selectedConfigFile; // Set dropdown to stored/default value
+
+    // 2. Add listener for config changes
+    configSelect.addEventListener('change', handleConfigChange);
+
+    // 3. Load the selected config and then initialize the rest of the app
+    loadConfigAndInitialize(selectedConfigFile);
+
+    // Note: Other initializations (loadAllChatData, etc.) are moved into initializeApplication()
 
     // --- Event Listeners ---
     sendButton.addEventListener('click', handleSendMessage);
     newChatButton.addEventListener('click', createNewSession);
     sessionSelect.addEventListener('change', (e) => switchSession(e.target.value));
+    // Config change listener is added during initialization
     attachImageButton.addEventListener('click', () => imageInput.click()); // Trigger file input
     imageInput.addEventListener('change', handleImageSelection); // Handle file selection
     removeImageButton.addEventListener('click', removeSelectedImage); // Handle image removal
@@ -57,6 +76,107 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Functions ---
+    // --- Config Loading and Initialization Functions ---
+
+    /** Populate the config select dropdown */
+    function populateConfigSelect() {
+        availableConfigs.forEach(cfg => {
+            const option = document.createElement('option');
+            option.value = cfg.file;
+            option.textContent = cfg.name;
+            configSelect.appendChild(option);
+        });
+    }
+
+    /** Handle config selection change */
+    function handleConfigChange(event) {
+        const newConfigFile = event.target.value;
+        localStorage.setItem(CONFIG_STORAGE_KEY, newConfigFile);
+        alert(`配置已更改为 ${availableConfigs.find(c=>c.file === newConfigFile)?.name || newConfigFile}. 页面将重新加载以应用更改。`);
+        location.reload(); // Reload the page to apply the new config
+    }
+
+    /** Load the specified config file and initialize the application */
+    function loadConfigAndInitialize(configFileName) {
+        console.log(`Loading config: ${configFileName}`);
+        // Remove any existing config script tag to avoid conflicts
+        const existingScript = document.querySelector('script[src^="config"]');
+        if (existingScript) {
+            existingScript.remove();
+        }
+
+        const script = document.createElement('script');
+        script.src = configFileName; // Load the selected config file
+        script.onload = () => {
+            console.log(`Config ${configFileName} loaded successfully.`);
+            // Check if the config file correctly assigned to window.loadedConfig
+            if (typeof window.loadedConfig === 'object' && window.loadedConfig !== null) {
+                // Assign the loaded config to our internal variable
+                config = window.loadedConfig;
+                // Clean up the temporary global variable
+                delete window.loadedConfig;
+                console.log("Config object assigned successfully.");
+                // Proceed with application initialization that depends on 'config'
+                initializeApplication();
+            } else {
+                // The config file loaded, but didn't define window.loadedConfig correctly
+                console.error(`Config object (window.loadedConfig) not found after loading ${configFileName}. Check the file structure. It should assign an object to 'window.loadedConfig'.`);
+                alert(`错误：配置文件 ${configFileName} 加载成功，但未正确定义配置对象。请检查文件内容。`);
+                // Optionally try loading default as fallback
+                if (configFileName !== availableConfigs[0].file) {
+                     console.log("Attempting to load default config as fallback.");
+                     localStorage.setItem(CONFIG_STORAGE_KEY, availableConfigs[0].file); // Reset storage to default
+                     loadConfigAndInitialize(availableConfigs[0].file); // Try loading default
+                } else {
+                     alert("错误：无法加载默认配置文件。应用程序无法启动。");
+                }
+            }
+        };
+        script.onerror = () => {
+            console.error(`Failed to load config file: ${configFileName}`);
+            alert(`错误：无法加载配置文件 ${configFileName}。将尝试加载默认配置。`);
+            // Fallback to default config if the selected one fails
+            if (configFileName !== availableConfigs[0].file) {
+                localStorage.setItem(CONFIG_STORAGE_KEY, availableConfigs[0].file); // Reset storage to default
+                loadConfigAndInitialize(availableConfigs[0].file); // Try loading default
+            } else {
+                 alert("错误：无法加载默认配置文件。应用程序无法启动。");
+            }
+        };
+        document.body.appendChild(script);
+    }
+
+     /** Initialize the main application components after config is loaded */
+     function initializeApplication() {
+        console.log("Initializing application with loaded config...");
+        // Initialize parts that depend on the 'config' object
+        activeModels = config.getActiveModels(); // Now safe to access config
+        currentAiIndex = 0;
+        aiTurnOrder = [];
+
+        // Load chat data and setup UI elements that depend on config
+        loadAllChatData();
+        initializeSessions();
+        populateSessionSelect();
+        if (activeSessionId) { // Ensure activeSessionId is valid before switching
+             switchSession(activeSessionId);
+        } else {
+             console.warn("No active session ID found after loading data. UI might be empty initially.");
+             // Optionally create a new session if none exists after loading
+             if (Object.keys(allChatData.sessions).length === 0) {
+                 createNewSession(); // This will also switch to the new session
+             }
+        }
+
+        updateAiStatus(); // Depends on activeModels
+        setupAiButtons(); // Depends on config.AI_CHAT_MODE and activeModels
+        adjustTextareaHeight(); // Initial adjustment for textarea
+
+        console.log("Application initialized.");
+    }
+
+
+    // --- Existing Functions (potentially modified) ---
 
     /** Dynamically adjust textarea height based on content */
     function adjustTextareaHeight() {
@@ -448,7 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 2. Display user message (with image if present)
-        const userName = config.User_Name || "User";
+        const userName = config?.User_Name || "User"; // Use optional chaining as config might be loading initially
         appendMessage(userName, messageContent, true);
 
         // 3. Add to history and save
@@ -484,6 +604,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /** Determine which AI(s) should respond based on mode */
     async function triggerAiResponse() {
+        if (!config) {
+             console.error("Cannot trigger AI response: Config not loaded yet.");
+             return;
+        }
         if (isAiResponding && config.AI_CHAT_MODE !== 'ButtonSend') {
              console.log("AI response cycle already in progress.");
              return; // Avoid overlapping triggers unless it's button mode
@@ -491,7 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isAiResponding = true; // Set flag
         setUiResponding(true); // Disable input/buttons
 
-        const mode = config.AI_CHAT_MODE;
+        const mode = config.AI_CHAT_MODE; // Now safe to access
 
         switch (mode) {
             case 'sequentialQueue':
@@ -579,6 +703,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
      /** Enable/disable UI elements during AI response */
     function setUiResponding(isResponding) {
+        if (!config) return; // Don't try to access config if not loaded
         messageInput.disabled = isResponding;
         sendButton.disabled = isResponding;
         // Disable AI buttons in ButtonSend mode as well
@@ -595,6 +720,12 @@ document.addEventListener('DOMContentLoaded', () => {
     /** Construct prompt and call the AI API */
     /** Construct prompt and call the AI API (handles multimodal) */
     async function callAiApi(model, retryCount = 0) {
+        if (!config) {
+             console.error("Cannot call API: Config not loaded yet.");
+             setUiResponding(false); // Re-enable UI if we can't proceed
+             isAiResponding = false;
+             return;
+        }
         if (!model) {
             console.error("Attempted to call API with an invalid model.");
             // Reset state if necessary, depending on the mode
@@ -714,35 +845,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 stream: config.StreamingOutput // 根据配置决定是否流式输出
             };
 
-            // --- Temporarily disabling tool addition for debugging ---
-            // if (model.Websearch === true) {
-            //      console.log(`Websearch enabled for ${model.Name}, adding google_search tool.`);
-            //      requestBody.tools = [
-            //          {
-            //              type: "function",
-            //              function: {
-            //                  name: "google_search",
-            //                  description: "Perform a Google search to find information on the web.",
-            //                  parameters: {
-            //                      type: "object",
-            //                      properties: {
-            //                          query: {
-            //                              type: "string",
-            //                              description: "The search query string."
-            //                          }
-            //                      },
-            //                      required: ["query"]
-            //                  }
-            //              }
-            //          }
-            //      ];
-            //      // Let the model decide when to use the tool
-            //      requestBody.tool_choice = "auto";
-            // }
-            // --- End of temporarily disabled block ---
+            // Add google_search tool if Websearch is enabled for the model
+            if (model.Websearch === true) {
+                 console.log(`Websearch enabled for ${model.Name}, adding google_search tool.`);
+                 requestBody.tools = [
+                     {
+                         type: "function",
+                         function: {
+                             name: "google_search",
+                             description: "Perform a Google search to find information on the web.",
+                             parameters: {
+                                 type: "object",
+                                 properties: {
+                                     query: {
+                                         type: "string",
+                                         description: "The search query string."
+                                     }
+                                 },
+                                 required: ["query"]
+                             }
+                         }
+                     }
+                 ];
+                 // Let the model decide when to use the tool
+                 requestBody.tool_choice = "auto";
+            }
 
 
-            const response = await fetch(`${config.API_URl}/v1/chat/completions`, {
+            const apiUrl = config.API_URl || ""; // Ensure API_URl exists
+            if (!apiUrl) {
+                console.error("API URL is not defined in the config.");
+                appendMessage("System", { text: "错误：API URL 未在配置中定义。" }, false);
+                setUiResponding(false);
+                isAiResponding = false;
+                return; // Stop if URL is missing
+            }
+            const response = await fetch(`${apiUrl}/v1/chat/completions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
