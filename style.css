@@ -670,8 +670,8 @@ body {
         /* gap: 10px; /* Space between AI items - overridden by justify-content? Use margin/padding on items if needed */
         width: 100%; /* Take full width */
         padding: 5px 0; /* Add some vertical padding */
-        /* position: relative; /* Removed */
-        /* left: -10px; /* Removed - justify-content: center should handle centering */
+        position: relative; /* Enable positioning */
+        left: -10px; /* Move the container 10px to the left */
     }
 
     .ai-status-item {
