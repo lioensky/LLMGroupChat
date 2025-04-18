@@ -742,3 +742,29 @@ body {
 #image-input {
     display: none;
 }
+/* --- Markdown Table Styles --- */
+.message-content table {
+    border-collapse: collapse; /* 合并单元格边框 */
+    width: auto; /* 表格宽度自适应内容，或设为 100% 如果需要 */
+    margin-top: 1em; /* 表格上方留白 */
+    margin-bottom: 1em; /* 表格下方留白 */
+    border: 1px solid rgba(0, 0, 0, 0.2); /* 整体表格外边框，颜色较浅 */
+    font-size: 0.95em; /* 调整表格内字体大小 */
+}
+
+.message-content th,
+.message-content td {
+    border: 1px solid rgba(0, 0, 0, 0.15); /* 单元格边框，颜色更浅 */
+    padding: 8px 12px; /* 单元格内边距 */
+    text-align: left; /* 文本左对齐 */
+}
+
+.message-content th {
+    background-color: rgba(0, 0, 0, 0.05); /* 表头单元格浅灰色背景 */
+    font-weight: bold; /* 表头字体加粗 */
+}
+
+/* 可选：为奇数行添加微弱背景色，增加可读性 */
+.message-content tr:nth-child(odd) td {
+    background-color: rgba(0, 0, 0, 0.02);
+}
