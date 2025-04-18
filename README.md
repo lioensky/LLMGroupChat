@@ -52,7 +52,7 @@
         *   显示名称 (`Name`)
         *   头像 (`Avatar`，图片放在 `image/` 目录下)
         *   个性化系统提示 (`SystemPrompts`)
-        *   用于 `@提及` 和 `NatureRandom` 模式的标签 (`Tag`)
+        *   用于 `@提及` 和 `NatureRandom` 模式的标签 (`Tag`)，支持一个角色多个tag比如“tag1，tag2，tag3……”
         *   是否支持图片 (`Image: true/false`)
         *   是否启用 Web 搜索 (`Websearch: true/false`，仅对需要工具调用的模型有效)
         *   其他模型参数（如 `Outputtoken`, `Temperature`）
