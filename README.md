@@ -37,7 +37,7 @@
 *   **高度可配置**：API 地址、密钥、模型参数、AI 个性（System Prompts）、头像、标签等都在 `config_*.js` 文件里设置。
 
 ## 🚀 如何开始派对？
-1.  **下载Realese压缩包**：源码文件缺乏许多贴图内容，直接从https://github.com/lioensky/LLMGroupChat/releases 下载LLM.Group.Pro.zip
+1.  **下载资源包压缩包**：源码文件缺乏许多贴图内容，直接从https://github.com/lioensky/LLMGroupChat/releases/tag/image 下载资源包解压到源码里。
 2.  **选择或创建配置文件**：
     *   你可以直接修改 `config_default.js`，或者复制一份并重命名为 `config_*.js`（例如 `config_mypreset.js`）。
     *   在 `script.js` 文件顶部的 `availableConfigs` 数组中注册你的新配置文件，给它起个名字。
