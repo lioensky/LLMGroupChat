@@ -2,24 +2,25 @@ body {
     font-family: sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f4f4f4;
+    /* background-color: #f4f4f4; */ /* Removed for background image */
     display: flex;
-    justify-content: center;
+    /* justify-content: center; */ /* Removed for left alignment */
     align-items: center;
     min-height: 100vh;
 }
 
 #chat-container {
     width: 95%; /* 左右加宽多一点 */
-    max-width: 1000px; /* 左右加宽多一点 */
+    max-width: 1100px; /* 左右加宽多一点 */
     height: 92vh; /* 上下加高一点点 */
     max-height: 950px; /* 上下加高一点点 */
-    background-color: #fff;
+    /* background-color: #fff; */ /* Removed for background image */
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    margin-left: 20px; /* Align left with same margin as floating window right */
 }
 
 #chat-header {
@@ -85,27 +86,68 @@ body {
     border-bottom: 1px solid #eee;
     display: flex;
     flex-direction: column;
+    background-size: cover; /* Ensure background covers the area */
+    background-position: center center; /* Center the background */
+    background-repeat: no-repeat; /* Prevent tiling */
 }
 
 .message {
     margin-bottom: 15px;
+    display: flex; /* Use flexbox for layout */
+    align-items: flex-end; /* Align avatar and bubble bottom */
+    /* max-width, padding, border-radius, word-wrap, line-height moved to .message-content */
+}
+
+/* New class for the avatar image */
+.avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%; /* Circular avatar */
+    margin: 0 10px; /* Space between avatar and message bubble */
+    object-fit: cover; /* Ensure image covers the area well */
+    flex-shrink: 0; /* Prevent avatar from shrinking */
+    align-self: flex-start; /* Align avatar to the top of the flex container */
+}
+
+/* New class to wrap the actual message text and sender */
+.message-content {
     padding: 10px 15px;
     border-radius: 18px;
-    max-width: 75%;
-    word-wrap: break-word; /* Ensure long words break */
+    max-width: 75%; /* Max width for the bubble */
+    word-wrap: break-word;
     line-height: 1.4;
 }
 
 .user-message {
-    background-color: #dcf8c6;
-    align-self: flex-end;
+    /* background-color moved to .message-content */
+    align-self: flex-end; /* Keep the whole message row to the right */
+    flex-direction: row-reverse; /* Avatar on the right */
+    /* border-bottom-right-radius moved to .message-content */
+}
+
+/* Apply styles specifically to user message content */
+.user-message .message-content {
+    background-color: rgba(220, 248, 198, 0.7); /* Semi-transparent light green */
     border-bottom-right-radius: 5px;
+    backdrop-filter: blur(8px); /* Add blur effect */
+    -webkit-backdrop-filter: blur(8px); /* For Safari compatibility */
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Optional: subtle border */
 }
 
 .ai-message {
-    background-color: #e9e9eb;
-    align-self: flex-start;
+    /* background-color moved to .message-content */
+    align-self: flex-start; /* Keep the whole message row to the left */
+    flex-direction: row; /* Avatar on the left (default, but explicit) */
+    /* border-bottom-left-radius moved to .message-content */
+}
+
+/* Apply styles specifically to AI message content */
+.ai-message .message-content {
+    background-color: rgba(255, 255, 255, 0.6); /* More transparent white */
     border-bottom-left-radius: 5px;
+    backdrop-filter: blur(10px); /* Add blur effect */
+    -webkit-backdrop-filter: blur(10px); /* For Safari compatibility */
+    border: 1px solid rgba(255, 255, 255, 0.18); /* Optional: subtle border */
 }
 
 .message .sender {
@@ -121,7 +163,7 @@ body {
 
 .user-message .sender {
      color: #3a7a3e; /* Different color for User sender */
-     text-align: right; /* Align user sender name to the right */
+     /* text-align: right; /* Alignment handled by flexbox now */
 }
 
 
@@ -172,72 +214,100 @@ body {
 }
 
 
+/* --- Global Input Area Styles (Applies to Desktop & Mobile unless overridden) --- */
 #chat-input-area {
     display: flex;
-    padding: 10px 15px 15px 15px; /* Adjust padding */
-    /* border-top: 1px solid #eee;  Moved to wrapper */
-    /* background-color: #f9f9f9; Moved to wrapper */
-    align-items: flex-end; /* Align items to the bottom for button consistency */
-    gap: 10px; /* Add gap between input and buttons */
+    padding: 10px 15px; /* Consistent padding */
+    align-items: stretch; /* Stretch items to match tallest */
+    gap: 8px; /* Space between elements */
 }
 
-#message-input {
-    flex-grow: 1;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 20px;
-    resize: none; /* Disable manual resizing */
-    /* margin-right: 10px; Replaced by gap */
-    min-height: 20px; /* Minimum height */
-    max-height: 100px; /* Maximum height before scrolling */
-    overflow-y: auto; /* Add scrollbar if needed */
-    font-size: 1em;
-    line-height: 1.4;
+/* Global style for the left button container */
+.left-input-buttons {
+    display: flex;
+    flex-direction: column; /* Stack buttons vertically */
+    gap: 4px; /* Space between stacked buttons */
+    order: 1; /* This group is the first item */
+    flex-shrink: 0;
 }
 
-#attach-image-button, /* Add attach button to this group */
-#send-button,
-#new-chat-button {
-    padding: 10px 15px; /* Slightly adjust padding */
-    color: white;
-    border: none;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.3s ease;
-    white-space: nowrap; /* Prevent button text wrapping */
-    height: 40px; /* Match textarea initial height approx */
-    display: flex; /* For centering icon/text if needed */
+/* Global styles for buttons inside the left vertical group */
+.left-input-buttons button {
+    padding: 0;
+    border-radius: 8px; /* Rounded rectangle */
+    height: 32px; /* Smaller height */
+    width: 36px;  /* Adjust width */
+    font-size: 0.8em; /* Smaller font size */
+    flex-shrink: 0;
+    display: flex;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
+/* Global specific styles for NEW button */
+#new-chat-button {
+     background-color: #f39c12;
+     font-size: 0.7em; /* Even smaller font for "NEW" */
+     font-weight: bold;
+}
+#new-chat-button:hover {
+     background-color: #e67e22;
+}
+
+/* Global specific styles for Attach button */
 #attach-image-button {
-    background-color: #6c757d; /* Grey color for attach */
-    padding: 10px 12px; /* Adjust padding for icon */
-    font-size: 1.2em; /* Make icon slightly larger */
+    background-color: #6c757d;
+    font-size: 1.0em; /* Adjust icon size */
 }
-
 #attach-image-button:hover {
      background-color: #5a6268;
 }
 
+
+/* Global styles for message input */
+#message-input {
+    flex-grow: 1; /* Allow input to take available space */
+    order: 2; /* Input field is the second item */
+    padding: 8px 12px; /* Keep padding */
+    border: 1px solid #ccc;
+    border-radius: 18px; /* Keep input radius */
+    resize: none;
+    /* height: 68px; Removed fixed height, rely on stretch */
+    max-height: 80px; /* Limit max height */
+    overflow-y: auto;
+    font-size: 0.95em; /* Default font size */
+    line-height: 1.4;
+    box-sizing: border-box; /* Ensure padding/border are included in height calculation */
+}
+
+/* Global styles for Send button */
 #send-button {
+    order: 3; /* Send button is the third item */
+    padding: 0 15px; /* Horizontal padding for text */
+    /* height: 68px; Removed fixed height, rely on stretch */
+    width: auto; /* Auto width based on text */
+    border-radius: 18px; /* Match input radius */
+    font-size: 0.9em; /* Default font size */
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box; /* Ensure padding/border are included */
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
     background-color: #4a90e2;
 }
-
-#new-chat-button {
-    background-color: #f39c12; /* Different color for distinction */
-}
-
-
 #send-button:hover {
     background-color: #357abd;
 }
 
-#new-chat-button:hover {
-     background-color: #e67e22;
-}
 
 #ai-buttons {
     margin-top: 10px; /* Add space above AI buttons */
@@ -275,4 +345,372 @@ body {
 
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+
+/* Floating AI Status Window Styles */
+#floating-ai-status-window {
+    position: absolute; /* Changed from fixed to absolute relative to chat-container */
+    top: 75px; /* Adjust top position below the header */
+    right: 20px; /* Position on the right */
+    width: 180px; /* Adjust width as needed */
+    max-height: calc(92vh - 100px); /* Adjust max height based on container height and top offset */
+    background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent background */
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.15);
+    padding: 10px;
+    z-index: 100; /* Ensure it's above other elements */
+    overflow-y: auto; /* Add scroll if content overflows */
+    display: none; /* Initially hidden */
+}
+
+#floating-ai-status-window h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 0.9em;
+    color: #333;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+#current-round-ais {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ai-status-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Push button to the right */
+    padding: 5px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+
+.ai-status-item img {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    margin-right: 8px;
+    object-fit: cover;
+    transition: filter 0.3s ease, opacity 0.3s ease; /* Add transition for smooth greying */
+}
+
+.ai-status-item span {
+    flex-grow: 1; /* Allow name to take available space */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ai-status-item .close-ai-btn {
+    background-color: #ff6b6b;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 11px;
+    line-height: 16px;
+    text-align: center;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 5px; /* Space between name and button */
+    flex-shrink: 0; /* Prevent button from shrinking */
+}
+
+.ai-status-item .close-ai-btn:hover {
+    background-color: #e05252;
+}
+
+/* Style for the X button when AI is excluded for the next round */
+.ai-status-item .close-ai-btn.excluded-next-round {
+    background-color: #bbb; /* Grey background */
+    opacity: 0.6;
+    cursor: not-allowed; /* Indicate it's already marked for exclusion */
+}
+
+/* Style for inactive AI avatars in the floating window */
+.ai-status-item img.inactive-avatar {
+    filter: grayscale(80%);
+    opacity: 0.5;
+}
+.ai-status-item .close-ai-btn.excluded-next-round:hover {
+     background-color: #aaa; /* Slightly darker grey on hover */
+}
+
+.ai-status-item .mute-ai-btn {
+    background-color: #ffae42; /* Orange default */
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 16px;
+    text-align: center;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 4px; /* Space between close and mute buttons */
+    flex-shrink: 0;
+    transition: background-color 0.3s ease;
+}
+
+.ai-status-item .mute-ai-btn.muted {
+    background-color: #888; /* Grey when muted */
+    opacity: 0.7;
+}
+
+.ai-status-item .mute-ai-btn:hover:not(.muted) {
+    background-color: #ff9a1f;
+}
+
+.ai-status-item .mute-ai-btn:hover.muted {
+    background-color: #666;
+}
+
+/* Responsive Design for Mobile Devices */
+@media (max-width: 768px) {
+    body {
+        /* Remove flex centering for mobile, allow natural flow */
+        display: block;
+        min-height: auto; /* Allow body height to adjust */
+        padding: 0; /* Remove default padding if any */
+    }
+
+    #chat-container {
+        width: 100%;
+        max-width: none;
+        height: 100vh; /* Full viewport height */
+        max-height: none;
+        border-radius: 0; /* Remove rounded corners */
+        box-shadow: none; /* Remove shadow */
+        padding-top: 50px; /* Reduced padding to match the slimmer floating bar */
+    }
+
+    #chat-header {
+        padding: 10px 15px; /* Reduce padding */
+        flex-direction: column; /* Stack title and controls */
+        align-items: flex-start; /* Align items to the start */
+        gap: 8px; /* Reduce gap */
+    }
+
+    #chat-header h1 {
+        /* Hide the main title on mobile */
+        display: none;
+    }
+    #controls-area {
+        width: 100%; /* Take full width */
+        justify-content: space-between; /* Space out controls */
+        gap: 10px; /* Adjust gap */
+    }
+
+    #chat-session-select,
+    #config-select { /* Apply to config select too */
+        font-size: 0.85em;
+        padding: 4px 6px;
+        flex-grow: 1; /* Allow selects to grow */
+    }
+
+    #ai-status {
+        /* Hide the AI status display entirely on small screens */
+        display: none;
+    }
+
+    #chat-messages {
+        padding: 15px; /* Adjust padding */
+    }
+
+    .message {
+        margin-bottom: 10px; /* Reduce margin */
+    }
+
+    .avatar {
+        width: 40px; /* Smaller avatar */
+        height: 40px;
+        margin: 0 8px; /* Adjust margin */
+    }
+
+    .message-content {
+        padding: 8px 12px; /* Smaller padding */
+        max-width: 85%; /* Allow slightly wider bubbles */
+        font-size: 0.95em; /* Adjust font size if needed */
+    }
+
+    #input-wrapper {
+        /* No changes needed unless specific issues arise */
+    }
+
+    #image-preview-area {
+        padding: 8px 10px 4px 10px;
+        max-width: 100px;
+    }
+
+    #image-preview {
+        max-height: 60px;
+    }
+
+    #remove-image-button {
+        width: 16px;
+        height: 16px;
+        font-size: 10px;
+        line-height: 14px;
+    }
+
+    /* --- Mobile Specific Overrides --- */
+    /* Remove redundant layout rules for input area and buttons, as they are now global */
+
+    #chat-input-area {
+        /* Mobile inherits flex, stretch, gap */
+        padding: 8px 10px; /* Slightly less padding on mobile */
+        align-items: flex-end; /* Align items to the bottom */
+    }
+
+    .left-input-buttons {
+        flex-direction: row; /* Stack buttons horizontally */
+    }
+
+    /* Ensure left buttons match Send button's border-radius on mobile */
+    .left-input-buttons button {
+        border-radius: 18px; /* Match send button radius */
+        /* Inherit other styles like height, width from global */
+    }
+    /* Keep specific mobile style overrides if needed below */
+    /* #attach-image-button { ... } */
+    /* #new-chat-button { ... } */
+
+
+    #message-input {
+        /* Mobile inherits flex-grow, order, max-height from global */
+        height: 32px; /* Match button height */
+        font-size: 0.9em; /* Slightly smaller font on mobile */
+        padding: 8px 10px; /* Adjust mobile horizontal padding */
+    }
+
+    #send-button {
+        /* Mobile inherits order, border-radius, background from global */
+        height: 32px; /* Match button height */
+        padding: 0 12px; /* Adjust mobile horizontal padding */
+        font-size: 0.85em; /* Slightly smaller font on mobile */
+    }
+
+
+    #ai-buttons {
+        order: 3; /* Place AI buttons last */
+        width: 100%; /* Take full width */
+        justify-content: center; /* Center buttons */
+        margin-top: 8px;
+        padding-left: 0; /* Remove left padding */
+    }
+
+    #ai-buttons button {
+        padding: 4px 8px;
+        font-size: 0.8em;
+    }
+
+    #floating-ai-status-window {
+        /* --- Mobile Horizontal Bar Style --- */
+        display: flex; /* Use flex for layout */
+        flex-direction: column; /* Stack title (hidden) and ais */
+        position: fixed; /* Float at the top */
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: auto; /* Adjust height based on content */
+        min-height: 40px; /* Reduced minimum height */
+        background-color: rgba(29, 91, 161, 1); /* Use header color with transparency */
+        padding: 5px 10px; /* Reduced padding */
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        z-index: 101; /* Ensure it's above chat header */
+        border-radius: 0; /* No rounded corners */
+        overflow-x: auto; /* Allow horizontal scrolling if too many avatars */
+        overflow-y: hidden;
+        border: none; /* Remove border */
+    }
+
+    #floating-ai-status-window h4 {
+        /* Hide the title on mobile */
+        display: none;
+    }
+
+    #current-round-ais {
+        /* Arrange items horizontally */
+        flex-direction: row;
+        justify-content: center; /* Center the avatars */
+        gap: 15px; /* Increased space between AI items */
+        align-items: center; /* Vertically align items */
+        /* gap: 10px; /* Space between AI items - overridden by justify-content? Use margin/padding on items if needed */
+        width: 100%; /* Take full width */
+        padding: 5px 0; /* Add some vertical padding */
+        position: relative; /* Enable offset positioning */
+        left: -10px; /* Shift the centered content left */
+    }
+
+    .ai-status-item {
+        /* Adjust item layout: Avatar on left, buttons stacked vertically on right */
+        display: flex; /* Use flex for avatar + button group layout */
+        flex-direction: row; /* Avatar and button group side-by-side */
+        align-items: center; /* Align avatar and button group vertically */
+        background-color: transparent; /* Remove item background */
+        gap: 5px; /* Space between avatar and button group */
+        padding: 0; /* Remove item padding */
+        gap: 3px; /* Small gap between avatar and buttons */
+        min-width: 40px; /* Ensure minimum width */
+    }
+
+    .ai-status-item span {
+        /* Hide the AI name */
+        display: none;
+    }
+
+    .ai-status-item img {
+        /* Adjust avatar size */
+        width: 30px;
+        height: 30px;
+        margin-right: 0; /* Remove margin */
+    }
+
+     /* Container for buttons to the right of avatar */
+    .ai-status-item .button-group {
+        display: flex;
+        flex-direction: column; /* Stack buttons vertically */
+        gap: 3px; /* Space between buttons */
+    }
+
+    .ai-status-item .close-ai-btn,
+    .ai-status-item .mute-ai-btn {
+        /* Adjust button size and position */
+        width: 15px;
+        height: 15px;
+        font-size: 9px;
+        line-height: 14px; /* Adjust line height */
+        margin-left: 0; /* Remove margin */
+        position: static; /* Override absolute positioning if any */
+        border-radius: 3px; /* Slightly rounded corners */
+    }
+
+     /* Specific adjustments if needed */
+    .ai-status-item .close-ai-btn {
+         /* background-color: rgba(255, 107, 107, 0.8); */
+    }
+    .ai-status-item .mute-ai-btn {
+         /* background-color: rgba(255, 174, 66, 0.8); */
+    }
+    .ai-status-item .mute-ai-btn.muted {
+        /* background-color: rgba(136, 136, 136, 0.8); */
+    }
+}
+
+/* Style for highlighted @mentions */
+.mention-highlight {
+    color: #007bff; /* Standard blue color */
+    font-weight: bold; /* Make it bold */
+    background-color: rgba(0, 123, 255, 0.1); /* Optional: subtle background highlight */
+    padding: 1px 3px; /* Optional: add some padding */
+    border-radius: 3px; /* Optional: rounded corners */
 }

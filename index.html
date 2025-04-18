@@ -29,10 +29,14 @@
             </div>
             <div id="chat-input-area">
                 <input type="file" id="image-input" accept="image/*" style="display: none;" />
-                <button id="attach-image-button" title="添加图片">📎</button>
+                <!-- Wrapper for left-side buttons -->
+                <div class="left-input-buttons">
+                     <button id="new-chat-button" title="开始新的聊天">NEW</button>
+                     <button id="attach-image-button" title="添加文件">File</button>
+                </div>
                 <textarea id="message-input" placeholder="输入你的消息..." rows="1"></textarea> <!-- Start with 1 row -->
                 <button id="send-button" title="发送消息">发送</button>
-                <button id="new-chat-button" title="开始新的聊天">新聊天</button>
+                <!-- NEW button moved to the left wrapper -->
                 <div id="ai-buttons" style="display: none;">
                     <!-- AI 发言按钮将动态添加到这里 (用于 ButtonSend 模式) -->
                 </div>
@@ -48,6 +52,8 @@
     </div>
 
     <!-- <script src="config.js"></script> --> <!-- 改为动态加载 -->
+    <!-- 引入 marked.js 用于 Markdown 解析 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

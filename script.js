@@ -26,8 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const imagePreviewArea = document.getElementById('image-preview-area');
     const imagePreview = document.getElementById('image-preview');
     const removeImageButton = document.getElementById('remove-image-button');
+    // Floating AI Status Window elements
+    const floatingAiStatusWindow = document.getElementById('floating-ai-status-window');
+    const currentRoundAisContainer = document.getElementById('current-round-ais');
 
-    // --- Configuration ---
     // --- Configuration (These will be initialized AFTER config is loaded) ---
     let activeModels = [];
     let currentAiIndex = 0;
@@ -39,11 +41,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeSessionId = null; // ID of the currently active session
     let isAiResponding = false;
     let selectedImageBase64 = null; // To store the selected image data
-
+    let excludedAiForNextRound = new Set(); // Stores names of AIs to exclude in the *next* round (single round)
+    let persistentlyMutedAiNames = new Set(); // Stores names of AIs persistently muted
+    let aiOptedOutLastRound = new Set(); // Stores names of AIs that included [[QuitGroup]] in their last response
+    let isAtAllTriggered = false; // Flag for "@所有人" command
+    
     // --- Constants ---
     const CHAT_DATA_KEY = 'aiGroupChatData';
+    const MUTED_AI_KEY = 'persistentlyMutedAiNames'; // Key for localStorage
 
-    // --- Initialization ---
+    // --- Marked.js Configuration ---
+    // Configure marked to handle line breaks and use GitHub Flavored Markdown
+    if (typeof marked !== 'undefined') {
+        marked.setOptions({
+            breaks: true, // Convert GFM line breaks into <br> tags
+            gfm: true      // Enable GitHub Flavored Markdown (includes breaks)
+        });
+        console.log("marked.js configured.");
+    } else {
+        console.error("marked.js library not loaded. Markdown rendering will be disabled.");
+    }
+
     // --- Initialization ---
     // 1. Setup Config Selector FIRST
     populateConfigSelect();
@@ -67,10 +85,14 @@ document.addEventListener('DOMContentLoaded', () => {
     imageInput.addEventListener('change', handleImageSelection); // Handle file selection
     removeImageButton.addEventListener('click', removeSelectedImage); // Handle image removal
     messageInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
+        // Check if it's Enter key, not Shift+Enter, AND not on a mobile-like screen width
+        const isMobileWidth = window.innerWidth <= 768; // Use a common breakpoint for mobile
+        if (e.key === 'Enter' && !e.shiftKey && !isMobileWidth) {
+            e.preventDefault(); // Prevent default newline on desktop when sending
             handleSendMessage();
         }
+        // On mobile (isMobileWidth is true), Enter will just perform its default action (newline)
+        // On desktop, Shift+Enter will also perform its default action (newline)
     });
     messageInput.addEventListener('input', adjustTextareaHeight);
 
@@ -171,8 +193,13 @@ document.addEventListener('DOMContentLoaded', () => {
         updateAiStatus(); // Depends on activeModels
         setupAiButtons(); // Depends on config.AI_CHAT_MODE and activeModels
         adjustTextareaHeight(); // Initial adjustment for textarea
+        updateFloatingAiWindow(activeModels); // Initialize floating window with all active models
 
         console.log("Application initialized.");
+        loadMutedAiNames(); // Load persistent mute state
+        updateFloatingAiWindow(activeModels); // Initialize floating window showing all models as active initially
+        setRandomBackground(); // Set initial random background for chat messages
+        setBodyBackground();   // Set initial random background for body
     }
 
 
@@ -222,10 +249,43 @@ document.addEventListener('DOMContentLoaded', () => {
             if (activeSessionId && allChatData.sessions[activeSessionId]) {
                  allChatData.sessions[activeSessionId].history = chatHistory;
             }
+        
             allChatData.activeSessionId = activeSessionId; // Make sure the active ID is current
             localStorage.setItem(CHAT_DATA_KEY, JSON.stringify(allChatData));
         } catch (error) {
             console.error("Error saving chat data:", error);
+        }
+    }
+
+    /** Load persistently muted AI names from localStorage */
+    function loadMutedAiNames() {
+        const savedMutedNames = localStorage.getItem(MUTED_AI_KEY);
+        if (savedMutedNames) {
+            try {
+                const namesArray = JSON.parse(savedMutedNames);
+                if (Array.isArray(namesArray)) {
+                    persistentlyMutedAiNames = new Set(namesArray);
+                    console.log("Loaded persistently muted AI names:", Array.from(persistentlyMutedAiNames));
+                } else {
+                     console.error("Invalid muted AI data in localStorage, expected an array.");
+                     persistentlyMutedAiNames = new Set(); // Reset if data is invalid
+                }
+            } catch (error) {
+                console.error("Error parsing muted AI names from localStorage:", error);
+                persistentlyMutedAiNames = new Set(); // Reset on error
+            }
+        } else {
+            persistentlyMutedAiNames = new Set(); // Initialize empty if nothing saved
+        }
+    }
+
+    /** Save persistently muted AI names to localStorage */
+    function saveMutedAiNames() {
+        try {
+            const namesArray = Array.from(persistentlyMutedAiNames);
+            localStorage.setItem(MUTED_AI_KEY, JSON.stringify(namesArray));
+        } catch (error) {
+            console.error("Error saving muted AI names to localStorage:", error);
         }
     }
 
@@ -382,13 +442,45 @@ document.addEventListener('DOMContentLoaded', () => {
         messageElement.classList.add('message');
         messageElement.classList.add(isUser ? 'user-message' : 'ai-message');
 
+        // --- Avatar ---
+        const avatarElement = document.createElement('img');
+        avatarElement.classList.add('avatar');
+        let avatarSrc = '';
+        const imageDir = 'image/'; // Define image directory prefix
+        const defaultUserAvatar = imageDir + 'default-user.png'; // Default user avatar path
+        const defaultAiAvatar = imageDir + 'default-ai.png'; // Default AI avatar path
+
+        if (isUser) {
+            // Get user avatar filename from config, add prefix
+            avatarSrc = config?.UserAvatar ? imageDir + config.UserAvatar : defaultUserAvatar;
+        } else {
+            // Find the AI model object by sender name
+            const aiModel = config?.models?.find(model => model.Name === sender);
+            // Get AI avatar filename from model object, add prefix
+            avatarSrc = aiModel?.Avatar ? imageDir + aiModel.Avatar : defaultAiAvatar;
+        }
+        avatarElement.src = avatarSrc;
+        avatarElement.alt = `${sender} 头像`;
+        // Add error handling for broken images
+        avatarElement.onerror = () => {
+            console.warn(`Failed to load avatar: ${avatarSrc}. Using default.`);
+            // Fallback to defined defaults on error
+            avatarElement.src = isUser ? defaultUserAvatar : defaultAiAvatar;
+        };
+
+        // --- Message Content Bubble ---
+        const messageContentElement = document.createElement('div');
+        messageContentElement.classList.add('message-content');
+
+        // --- Sender Name (inside the bubble) ---
         const senderElement = document.createElement('div');
         senderElement.classList.add('sender');
         senderElement.textContent = sender;
-        messageElement.appendChild(senderElement);
+        messageContentElement.appendChild(senderElement); // Sender goes inside the bubble now
 
-        const contentWrapper = document.createElement('div'); // Wrapper for text and image
-        contentWrapper.classList.add('content-wrapper');
+        // --- Content Wrapper (for text and image, inside the bubble) ---
+        const contentWrapper = document.createElement('div');
+        contentWrapper.classList.add('content-wrapper'); // Keep this class if needed for styling
 
         // Handle potential old string format or new object format
         const textContent = (typeof contentData === 'string') ? contentData : contentData.text;
@@ -410,20 +502,38 @@ document.addEventListener('DOMContentLoaded', () => {
         // Display text content if present
         if (textContent || isLoading) {
             const contentElement = document.createElement('div');
-            contentElement.classList.add('content');
-            contentElement.textContent = textContent || ''; // Use textContent for safety
+            contentElement.classList.add('content'); // Keep this class if needed
+            // Use innerHTML and marked.parse to render Markdown
+            // Highlight mentions before parsing Markdown
+            const highlightedText = highlightMentions(textContent || '');
+            if (typeof marked !== 'undefined') {
+                // Use innerHTML for parsed Markdown which now includes the highlight spans
+                contentElement.innerHTML = marked.parse(highlightedText);
+            } else {
+                // Fallback: Directly set innerHTML if marked is not loaded,
+                // as highlightMentions already returns HTML.
+                // Still replace newlines for basic formatting.
+                contentElement.innerHTML = highlightedText.replace(/\n/g, '<br>');
+            }
+
 
              if (isLoading) {
                  const loadingIndicator = document.createElement('span');
                  loadingIndicator.classList.add('loading-indicator');
                  contentElement.appendChild(loadingIndicator);
-                 messageElement.dataset.loadingId = sender; // Mark loading message by sender
+                 // Keep track of loading state on the main message element, not just content
+                 messageElement.dataset.loadingId = sender;
              }
             contentWrapper.appendChild(contentElement);
         }
 
+        messageContentElement.appendChild(contentWrapper); // Add content wrapper to the bubble
 
-        messageElement.appendChild(contentWrapper);
+        // --- Assemble Message Element ---
+        // Order depends on user vs AI (CSS flex-direction handles visual order)
+        messageElement.appendChild(avatarElement);
+        messageElement.appendChild(messageContentElement);
+
         chatMessages.appendChild(messageElement);
         scrollToBottom();
     }
@@ -449,15 +559,29 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
 
-            // Update text content
-            contentElement.textContent = textContent;
+            // Update text content using marked.parse
+            if (typeof marked !== 'undefined') {
+                 // Highlight mentions before parsing Markdown
+                 const highlightedText = highlightMentions(textContent || '');
+                 if (typeof marked !== 'undefined') {
+                     // Use innerHTML for parsed Markdown which now includes the highlight spans
+                     contentElement.innerHTML = marked.parse(highlightedText);
+                 } else {
+                     // Fallback: Directly set innerHTML if marked is not loaded,
+                     // as highlightMentions already returns HTML.
+                     // Still replace newlines for basic formatting.
+                     contentElement.innerHTML = highlightedText.replace(/\n/g, '<br>');
+                 }
+            }
 
-            // Handle loading indicator
+
+            // Handle loading indicator - Append it AFTER parsing the content
             let loadingIndicator = contentElement.querySelector('.loading-indicator');
             if (!isFinalUpdate) {
                 if (!loadingIndicator) {
                     loadingIndicator = document.createElement('span');
                     loadingIndicator.classList.add('loading-indicator');
+                    // Append the indicator after the parsed HTML content
                     contentElement.appendChild(loadingIndicator);
                 }
             } else {
@@ -580,6 +704,12 @@ document.addEventListener('DOMContentLoaded', () => {
         removeSelectedImage(); // Clear image state and preview
         adjustTextareaHeight();
 
+        // Check for "@所有人" command
+        if (messageText.includes('@所有人')) {
+            console.log("Detected '@所有人' command.");
+            isAtAllTriggered = true;
+        }
+
         // 5. Trigger AI response(s)
         triggerAiResponse();
     }
@@ -605,18 +735,119 @@ document.addEventListener('DOMContentLoaded', () => {
     /** Determine which AI(s) should respond based on mode */
     async function triggerAiResponse() {
         if (!config) {
-             console.error("Cannot trigger AI response: Config not loaded yet.");
-             return;
+            console.error("Cannot trigger AI response: Config not loaded yet.");
+            return;
         }
         if (isAiResponding && config.AI_CHAT_MODE !== 'ButtonSend') {
-             console.log("AI response cycle already in progress.");
-             return; // Avoid overlapping triggers unless it's button mode
+            console.log("AI response cycle already in progress.");
+            return; // Avoid overlapping triggers unless it's button mode
         }
         isAiResponding = true; // Set flag
         setUiResponding(true); // Disable input/buttons
 
         const mode = config.AI_CHAT_MODE; // Now safe to access
+        let potentialSpeakers = [];
 
+        // 1. Determine POTENTIAL speakers based on mode
+        switch (mode) {
+            case 'sequentialQueue':
+                potentialSpeakers = [...activeModels]; // All models in original order
+                break;
+            case 'shuffledQueue':
+                // Generate a new shuffled order of indices for *this turn*
+                const shuffledIndicesThisTurn = activeModels.map((_, index) => index).sort(() => Math.random() - 0.5);
+                potentialSpeakers = shuffledIndicesThisTurn.map(index => activeModels[index]);
+                break;
+            case 'randomSubsetQueue':
+                const subsetSize = Math.floor(Math.random() * activeModels.length) + 1;
+                const shuffledIndices = activeModels.map((_, index) => index).sort(() => Math.random() - 0.5);
+                const subsetIndices = shuffledIndices.slice(0, subsetSize);
+                potentialSpeakers = subsetIndices.map(index => activeModels[index]);
+                break;
+            case 'NatureRandom':
+                potentialSpeakers = determineNatureRandomSpeakers(); // This function returns the potential speakers directly
+                break;
+            case 'ButtonSend':
+                // ButtonSend is handled differently, no automatic speakers here.
+                // We still need to reset the UI and flag if no button was clicked.
+                isAiResponding = false;
+                setUiResponding(false);
+                // Keep the window populated in ButtonSend mode, remove the clearing line:
+                // updateFloatingAiWindow([]);
+                return; // Exit early for ButtonSend
+            default:
+                console.error(`Unknown AI_CHAT_MODE: ${mode}`);
+                isAiResponding = false; // Reset flag on error
+                setUiResponding(false);
+                updateFloatingAiWindow([]); // Clear window on error
+                return;
+        }
+
+        // 2. Filter out excluded AIs for THIS round
+        let actualSpeakers;
+        if (isAtAllTriggered) {
+            console.log("@所有人 is active: Forcing all non-muted/non-excluded AIs to respond.");
+            actualSpeakers = activeModels.filter(model => // Start from all active models for @all
+                !excludedAiForNextRound.has(model.Name) && // Still respect user's single-round exclusion
+                !persistentlyMutedAiNames.has(model.Name)    // Still respect user's persistent mute
+                // Ignore aiOptedOutLastRound for @all
+            );
+            console.log(`@所有人 speakers (after mute/exclude filter): ${actualSpeakers.map(m => m.Name).join(', ')}`);
+        } else {
+            // Normal filtering logic
+            actualSpeakers = potentialSpeakers.filter(model =>
+                !excludedAiForNextRound.has(model.Name) && // Filter based on single-round user exclusion
+                !persistentlyMutedAiNames.has(model.Name) && // Filter based on persistent user mute
+                !aiOptedOutLastRound.has(model.Name)         // Filter based on AI opt-out from last round
+            );
+        }
+
+        console.log(`Potential speakers (mode-based): ${potentialSpeakers.map(m => m.Name).join(', ')}`);
+        if (excludedAiForNextRound.size > 0 || persistentlyMutedAiNames.size > 0 || aiOptedOutLastRound.size > 0 || isAtAllTriggered) { // Added isAtAllTriggered here for logging context
+             const excludedThisRound = Array.from(excludedAiForNextRound);
+             const mutedPersistently = Array.from(persistentlyMutedAiNames);
+             const optedOutLastRound = Array.from(aiOptedOutLastRound);
+             console.log(`Excluding (user, next round only): ${excludedThisRound.length > 0 ? excludedThisRound.join(', ') : 'None'}`);
+             console.log(`Muted (user, persistently): ${mutedPersistently.length > 0 ? mutedPersistently.join(', ') : 'None'}`);
+             console.log(`Opted Out (AI, last round): ${optedOutLastRound.length > 0 ? optedOutLastRound.join(', ') : 'None'}`);
+             console.log(`Actual speakers: ${actualSpeakers.map(m => m.Name).join(', ')}`);
+        }
+
+        // 3. IMPORTANT: Clear the SINGLE-ROUND exclusion lists (user & AI) for the *next* round immediately after filtering
+        excludedAiForNextRound.clear();
+        aiOptedOutLastRound.clear(); // Clear AI opt-out list for the next cycle
+        // NOTE: persistentlyMutedAiNames is NOT cleared here.
+
+        // 4. Update floating window to show who IS speaking this round (grey out others)
+        updateFloatingAiWindow(activeModels, actualSpeakers);
+        // 5. Call API for ACTUAL speakers
+        if (actualSpeakers.length === 0) {
+            console.log("No AI speakers left after exclusion.");
+            // Optionally display a message indicating no one is responding this round
+        } else {
+            // Use a simple loop for sequential execution based on the mode's original intent
+            // (e.g., sequentialQueue respects order, shuffledQueue respects its generated order)
+            for (const model of actualSpeakers) {
+                if (model) { // Double check model validity
+                    console.log(`--- Calling AI: ${model.Name} ---`);
+                    await callAiApi(model);
+                } else {
+                    console.error(`Found invalid model entry in actualSpeakers.`);
+                }
+            }
+        }
+
+        // 6. Reset flag and UI state after the response cycle completes
+        isAiResponding = false;
+        setUiResponding(false);
+        isAtAllTriggered = false; // Reset the @all flag after the cycle
+        // Update floating window status AFTER responses are done & temporary exclusions cleared
+        // This shows the state for the *next* round's potential exclusions
+        // Ensure the window reflects the state for the next round, showing all active models
+        // Ensure the window reflects the state for the next round, showing all active models and resetting greying
+        updateFloatingAiWindow(activeModels);
+
+        /* --- Old switch logic removed, replaced by steps above ---
         switch (mode) {
             case 'sequentialQueue':
                 console.log("Sequential Queue: All AIs responding in order.");
@@ -688,6 +919,19 @@ document.addEventListener('DOMContentLoaded', () => {
                  setUiResponding(false);
                 break;
 
+            case 'NatureRandom':
+                console.log("NatureRandom Mode: Determining next speakers based on last round.");
+                console.log("NatureRandom Mode: Determining next speakers based on last round.");
+                // determineNatureRandomSpeakers now handles the first turn correctly.
+                const speakers = determineNatureRandomSpeakers(); // Now returns only the array
+
+                console.log(`NatureRandom speakers determined: ${speakers.map(m => m.Name).join(', ')}`);
+                for (const model of speakers) {
+                    await callAiApi(model);
+                }
+                break;
+
+
             default:
                 console.error(`Unknown AI_CHAT_MODE: ${config.AI_CHAT_MODE}`);
                 isAiResponding = false; // Reset flag on error
@@ -699,6 +943,7 @@ document.addEventListener('DOMContentLoaded', () => {
             isAiResponding = false;
             setUiResponding(false);
          }
+        */
     }
 
      /** Enable/disable UI elements during AI response */
@@ -716,6 +961,147 @@ document.addEventListener('DOMContentLoaded', () => {
         sendButton.textContent = isResponding ? "思考中..." : "发送";
     }
 
+    /**
+     * Helper function for NatureRandom mode to determine speakers for the next round.
+     * Handles the first turn logic internally.
+     * @returns {Array<Object>} An array of AI model objects that should speak.
+     */
+    function determineNatureRandomSpeakers() {
+        const isFirstTurn = chatHistory.length === 1; // Check if it's the very first user message
+        let lastRoundMessages = [];
+
+        if (isFirstTurn) {
+            console.log("NatureRandom: Handling first turn.");
+            lastRoundMessages = [chatHistory[0]]; // Only the user's first message
+        } else {
+            // Find the start index of the last round (last user message)
+            let lastUserMessageIndex = -1;
+            // Start search from second-to-last message to find the beginning of the *previous* round
+            for (let i = chatHistory.length - 2; i >= 0; i--) {
+                if (chatHistory[i].role === 'user') {
+                    lastUserMessageIndex = i;
+                    break;
+                }
+            }
+
+            if (lastUserMessageIndex === -1 && chatHistory.length > 1) {
+                 // This case means there's history, but no user message before the last AI responses.
+                 // Analyze the entire history up to this point.
+                 console.warn("NatureRandom: Could not find previous user message, analyzing entire history for mentions.");
+                 lastRoundMessages = chatHistory.slice(0, chatHistory.length);
+            } else if (lastUserMessageIndex !== -1) {
+                 // Get messages from the last user message onwards
+                 lastRoundMessages = chatHistory.slice(lastUserMessageIndex);
+            } else {
+                 // This should only happen if chatHistory has 0 or 1 message, handled by isFirstTurn
+                 console.warn("NatureRandom: Unexpected state in determining last round messages.");
+                 lastRoundMessages = chatHistory.slice(0); // Analyze what we have
+            }
+        }
+
+        // 2. Extract Tags and create Regex (Moved down slightly)
+
+        // 3. Extract Tags and create Regex
+        const aiTags = activeModels.map(m => m.Tag).filter(tag => tag); // Get tags from active models
+        if (aiTags.length === 0) {
+             console.warn("NatureRandom: No tags found in active models. Falling back to random subset.");
+             // Fallback: Select a random subset if no tags are defined
+             const subsetSize = Math.floor(Math.random() * activeModels.length) + 1;
+             const shuffledIndices = activeModels.map((_, index) => index).sort(() => Math.random() - 0.5);
+             const subsetIndices = shuffledIndices.slice(0, subsetSize);
+             return subsetIndices.map(index => activeModels[index]);
+        }
+        // Escape special regex characters in tags just in case
+        const escapedTags = aiTags.map(tag => tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        const tagRegex = new RegExp(`(${escapedTags.join('|')})`, 'g'); // Match any of the tags
+
+        // 4. Find mentioned tags
+        const userMentionedTags = new Set();
+        const aiMentionedTags = new Set();
+
+        lastRoundMessages.forEach(msg => {
+            const text = msg.content?.text;
+            if (text) {
+                const matches = text.match(tagRegex);
+                if (matches) {
+                    const uniqueMatchesInMsg = new Set(matches); // Unique tags mentioned in this specific message
+                    if (msg.role === 'user') {
+                        uniqueMatchesInMsg.forEach(tag => userMentionedTags.add(tag));
+                    } else { // AI message
+                        uniqueMatchesInMsg.forEach(tag => aiMentionedTags.add(tag));
+                    }
+                }
+            }
+        });
+
+        // 5. Determine next speakers
+        const nextSpeakers = [];
+        const mentionedSpeakers = new Set(); // Keep track of who is already added
+
+        // Priority 1: User mentioned (add in order found, or fixed order?) Let's use config order for consistency.
+        activeModels.forEach(model => {
+            if (model.Tag && userMentionedTags.has(model.Tag)) {
+                nextSpeakers.push(model);
+                mentionedSpeakers.add(model.Name); // Track by Name to avoid duplicates
+            }
+        });
+
+        // Priority 2: AI mentioned (add if not already added)
+        activeModels.forEach(model => {
+            if (model.Tag && aiMentionedTags.has(model.Tag) && !mentionedSpeakers.has(model.Name)) {
+                nextSpeakers.push(model);
+                mentionedSpeakers.add(model.Name);
+            }
+        });
+
+        // Priority 3: Random chance for unmentioned
+        const mentionProbability = 1 / (config.AI_LIST || activeModels.length); // Use AI_LIST as per user spec
+        activeModels.forEach(model => {
+            if (!mentionedSpeakers.has(model.Name)) {
+                if (Math.random() < mentionProbability) {
+                    nextSpeakers.push(model);
+                    // No need to add to mentionedSpeakers here, already checked
+                }
+            }
+        });
+
+        // --- Ensure at least one speaker if no mentions/probability hits (for any turn) ---
+        if (nextSpeakers.length === 0 && activeModels.length > 0) {
+             console.log("NatureRandom: No speakers selected, forcing one random speaker.");
+             const randomIndex = Math.floor(Math.random() * activeModels.length);
+             nextSpeakers.push(activeModels[randomIndex]);
+        }
+        // --- End of guarantee ---
+
+        return nextSpeakers; // Return just the array of speakers
+    }
+
+
+
+    /** Highlight @mentions in text content */
+    function highlightMentions(text) {
+        if (!text || typeof text !== 'string' || !config || !config.models) {
+            return text; // Return original text if invalid input or config not ready
+        }
+
+        // 1. Get all valid tags from config, filter out empty/null tags
+        const validTags = config.models.map(m => m.Tag).filter(tag => tag && typeof tag === 'string' && tag.trim() !== '');
+
+        // 2. Escape special regex characters in tags
+        const escapedTags = validTags.map(tag => tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+        // 3. Create the regex pattern: @所有人 OR @tag1 OR @tag2 ...
+        // Ensure tags are included only if the list is not empty
+        const tagPatternPart = escapedTags.length > 0 ? `|@(?:${escapedTags.join('|')})` : '';
+        const mentionRegex = new RegExp(`(@所有人${tagPatternPart})(?![\\w-])`, 'g'); // Match mentions not followed by more word chars/hyphen
+
+        // 4. Replace matches with highlighted span
+        // Using a function in replace allows checking if the match is valid before wrapping
+        return text.replace(mentionRegex, (match) => {
+             // Optional: Add extra validation here if needed, e.g., check against a dynamic list
+             return `<span class="mention-highlight">${match}</span>`;
+        });
+    }
 
     /** Construct prompt and call the AI API */
     /** Construct prompt and call the AI API (handles multimodal) */
@@ -735,7 +1121,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return;
         }
-        
+
         // 显示重试信息（如果是重试的话）
         const retryText = retryCount > 0 ? `(重试 ${retryCount}/2)` : '';
         console.log(`Calling API for: ${model.Name} ${retryText}`);
@@ -894,7 +1280,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Handle HTTP errors (e.g., 4xx, 5xx)
                 const errorData = await response.json().catch(() => ({ message: response.statusText })); // Try to parse error JSON
                 console.error(`API Error for ${model.Name}: ${response.status}`, errorData);
-                
+
                 // 实现HTTP错误的重试逻辑，最多重试2次
                 if (retryCount < 2) {
                     console.log(`Retrying API call for ${model.Name} after HTTP error ${response.status}, attempt ${retryCount + 1}/2`);
@@ -902,7 +1288,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     await new Promise(resolve => setTimeout(resolve, 1000));
                     return await callAiApi(model, retryCount + 1);
                 }
-                
+
                 // 所有重试都失败后，显示错误信息
                 updateLoadingMessage(model.Name, `错误: ${errorData.message || response.statusText} (已重试${retryCount}次)`, true);
                 chatHistory.push({ role: 'assistant', name: model.Name, content: { text: `错误: ${errorData.message || response.statusText} (已重试${retryCount}次)` } });
@@ -964,21 +1350,37 @@ document.addEventListener('DOMContentLoaded', () => {
                      }
                 }
                  // Final update after stream ends
-                updateLoadingMessage(model.Name, accumulatedResponse, true); // isFinalUpdate = true
+                 let finalResponseText = accumulatedResponse;
+                 // Check for AI opt-out tag
+                 if (finalResponseText.endsWith('[[QuitGroup]]')) {
+                     console.log(`${model.Name} opted out for the next round.`);
+                     aiOptedOutLastRound.add(model.Name);
+                     // Remove the tag before displaying/saving
+                     finalResponseText = finalResponseText.slice(0, -'[[QuitGroup]]'.length).trim();
+                 }
+                updateLoadingMessage(model.Name, finalResponseText, true); // isFinalUpdate = true
 
-                // Add final AI response to history and save
-                chatHistory.push({ role: 'assistant', name: model.Name, content: { text: accumulatedResponse } });
+                // Add final AI response (without tag) to history and save
+                chatHistory.push({ role: 'assistant', name: model.Name, content: { text: finalResponseText } });
                 saveChatHistory();
 
             } else {
                 // Process non-streamed response
                 const responseData = await response.json();
-                const fullContent = responseData.choices?.[0]?.message?.content || "未能获取响应内容";
+                let fullContent = responseData.choices?.[0]?.message?.content || "未能获取响应内容";
 
-                // Update UI once with the full response
+                 // Check for AI opt-out tag
+                 if (fullContent.endsWith('[[QuitGroup]]')) {
+                     console.log(`${model.Name} opted out for the next round.`);
+                     aiOptedOutLastRound.add(model.Name);
+                     // Remove the tag before displaying/saving
+                     fullContent = fullContent.slice(0, -'[[QuitGroup]]'.length).trim();
+                 }
+
+                // Update UI once with the full response (without tag)
                 updateLoadingMessage(model.Name, fullContent, true); // isFinalUpdate = true
 
-                // Add final AI response to history and save
+                // Add final AI response (without tag) to history and save
                 chatHistory.push({ role: 'assistant', name: model.Name, content: { text: fullContent } });
                 saveChatHistory();
             }
@@ -991,7 +1393,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 return await callAiApi(model, retryCount + 1);
             }
-            
+
             // 所有重试都失败后，显示错误信息
             let errorMessage = "API 请求失败";
             if (error.name === 'TimeoutError') {
@@ -1017,4 +1419,208 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    /** Update the floating AI status window to show all active models and their status, greying out non-speakers */
+    function updateFloatingAiWindow(allModels, speakingModels = null) { // Added speakingModels parameter
+        if (!floatingAiStatusWindow || !currentRoundAisContainer) return; // Guard if elements don't exist
+
+        currentRoundAisContainer.innerHTML = ''; // Clear previous items
+
+        // Hide window only if there are no active models at all
+        if (!allModels || allModels.length === 0) {
+            floatingAiStatusWindow.style.display = 'none';
+            return;
+        }
+
+        floatingAiStatusWindow.style.display = 'block'; // Show the window
+
+        // Create a Set of speaking model names for efficient lookup, if provided
+        const speakingModelNames = speakingModels ? new Set(speakingModels.map(m => m.Name)) : null;
+
+        allModels.forEach(model => { // Iterate over ALL active models
+            const itemDiv = document.createElement('div');
+            itemDiv.classList.add('ai-status-item');
+
+            // Avatar
+            const img = document.createElement('img');
+            const imageDir = 'image/';
+            const defaultAiAvatar = imageDir + 'default-ai.png';
+            img.src = model.Avatar ? imageDir + model.Avatar : defaultAiAvatar;
+            img.alt = model.Name;
+            img.onerror = () => { img.src = defaultAiAvatar; }; // Fallback
+            // Add/remove inactive class based on whether the model is speaking this round
+            if (speakingModelNames && !speakingModelNames.has(model.Name)) {
+                img.classList.add('inactive-avatar');
+            } else {
+                img.classList.remove('inactive-avatar'); // Ensure active state if speaking or if speakingModels is null
+            }
+
+            // Name
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = model.Name;
+
+            // --- Buttons Container ---
+            const buttonsContainer = document.createElement('div');
+            buttonsContainer.style.display = 'flex'; // Align buttons horizontally
+
+            // Mute Button (Persistent)
+            const muteBtn = document.createElement('button');
+            muteBtn.classList.add('mute-ai-btn');
+            muteBtn.textContent = '!';
+            muteBtn.dataset.aiName = model.Name;
+
+            // Set initial state and title based on persistent mute status
+            if (persistentlyMutedAiNames.has(model.Name)) {
+                muteBtn.classList.add('muted');
+                muteBtn.title = `点击取消对 ${model.Name} 的持续禁言`;
+            } else {
+                muteBtn.title = `点击持续禁言 ${model.Name}`;
+            }
+
+            // Add click listener to toggle persistent mute
+            muteBtn.addEventListener('click', (e) => {
+                const aiNameToMute = e.target.dataset.aiName;
+                if (aiNameToMute) {
+                    if (persistentlyMutedAiNames.has(aiNameToMute)) {
+                        persistentlyMutedAiNames.delete(aiNameToMute);
+                        e.target.classList.remove('muted');
+                        e.target.title = `点击持续禁言 ${aiNameToMute}`;
+                        console.log(`Persistent mute removed for ${aiNameToMute}.`);
+                    } else {
+                        persistentlyMutedAiNames.add(aiNameToMute);
+                        e.target.classList.add('muted');
+                        e.target.title = `点击取消对 ${aiNameToMute} 的持续禁言`;
+                        console.log(`Persistent mute added for ${aiNameToMute}.`);
+                    }
+                    saveMutedAiNames(); // Save the updated mute list
+                }
+            });
+
+            // Close Button (Single Round Exclusion Indicator/Trigger)
+            const closeBtn = document.createElement('button');
+            closeBtn.classList.add('close-ai-btn');
+            closeBtn.textContent = 'X';
+            closeBtn.dataset.aiName = model.Name; // Store name to identify AI
+
+            // Set initial state and title based on *next round* exclusion status
+            const isExcludedNextRound = excludedAiForNextRound.has(model.Name) || aiOptedOutLastRound.has(model.Name);
+            if (isExcludedNextRound) {
+                closeBtn.classList.add('excluded-next-round');
+                closeBtn.title = `${model.Name} 将在下一轮被跳过`;
+            } else {
+                 closeBtn.classList.remove('excluded-next-round'); // Ensure class is removed if not excluded
+                 closeBtn.title = `点击标记 ${model.Name} 在下一轮不发言`;
+            }
+
+            // Add click listener to MARK AI for exclusion in the next round
+            closeBtn.addEventListener('click', (e) => {
+                const aiNameToExclude = e.target.dataset.aiName;
+                const button = e.target;
+                if (aiNameToExclude) {
+                    // Toggle exclusion for next round by user click
+                    if (excludedAiForNextRound.has(aiNameToExclude)) {
+                        // If already marked by user, unmark it
+                        excludedAiForNextRound.delete(aiNameToExclude);
+                        button.classList.remove('excluded-next-round');
+                        button.title = `点击标记 ${aiNameToExclude} 在下一轮不发言`;
+                        console.log(`User un-marked ${aiNameToExclude} for exclusion next round.`);
+                    } else {
+                        // Mark for exclusion
+                        excludedAiForNextRound.add(aiNameToExclude);
+                        button.classList.add('excluded-next-round');
+                        button.title = `${aiNameToExclude} 已被标记，将在下一轮被跳过`;
+                        console.log(`User marked ${aiNameToExclude} for exclusion next round.`);
+                    }
+                    // Note: aiOptedOutLastRound is handled separately based on AI response
+                }
+            });
+
+            buttonsContainer.appendChild(muteBtn); // Add mute button first
+            buttonsContainer.appendChild(closeBtn); // Add close button second
+
+            itemDiv.appendChild(img);
+            itemDiv.appendChild(nameSpan);
+            itemDiv.appendChild(buttonsContainer); // Add the container with both buttons
+            currentRoundAisContainer.appendChild(itemDiv);
+        });
+    }
+
 }); // End DOMContentLoaded
+
+
+    /** Sets a random background image for the chat messages area based on screen width */
+    function setRandomBackground() {
+        const chatMessagesDiv = document.getElementById('chat-messages');
+        if (!chatMessagesDiv) return; // Exit if element not found
+
+        const imageDir = 'image/'; // Base directory for images
+
+        // Define image lists (ensure filenames match exactly, including case)
+        const phoneImages = [
+            'Phone餐厅.png',
+            'phone街头.png', // Note lowercase 'p'
+            'Phone客厅.png',
+            'Phone书房.png',
+            'Phone卧室.png'
+        ];
+        const winImages = [
+            'Win餐厅.png',
+            'Win晨间卧室.png',
+            'Win厨房.png',
+            'Win书房.png',
+            'Win浴室.png'
+        ];
+
+        let selectedImageList;
+
+        // Check screen width (using 768px breakpoint from CSS media query)
+        if (window.innerWidth <= 768) {
+            selectedImageList = phoneImages;
+            console.log("Using Phone background images.");
+        } else {
+            selectedImageList = winImages;
+            console.log("Using Win background images.");
+        }
+
+        // Select a random image from the chosen list
+        if (selectedImageList.length > 0) {
+            const randomIndex = Math.floor(Math.random() * selectedImageList.length);
+            const randomImageFile = selectedImageList[randomIndex];
+            // Determine the correct subdirectory based on the selected list
+            const subDir = (selectedImageList === phoneImages) ? 'Phone/' : 'Win/';
+            const imageUrl = imageDir + subDir + randomImageFile; // Include the subdirectory
+
+            console.log(`Setting background to: ${imageUrl}`);
+            chatMessagesDiv.style.backgroundImage = `url('${imageUrl}')`;
+        } else {
+            console.warn("No background images found for the current resolution.");
+            chatMessagesDiv.style.backgroundImage = 'none'; // Fallback to no background
+        }
+    }
+
+    /** Sets a random background image for the main body */
+    function setBodyBackground() {
+        const imageDir = 'image/Wallpaper/'; // Wallpaper directory
+        const wallpaperImages = [
+            'ComfyUI_134901_177920272026190_00001.png',
+            'ComfyUI_135039_177581081695754_00003.png',
+            'ComfyUI_135246_390494183581112_00005.png',
+            'ComfyUI_135334_868574652531835_00006.png'
+        ];
+
+        if (wallpaperImages.length > 0) {
+            const randomIndex = Math.floor(Math.random() * wallpaperImages.length);
+            const randomImageFile = wallpaperImages[randomIndex];
+            const imageUrl = imageDir + randomImageFile;
+
+            console.log(`Setting body background to: ${imageUrl}`);
+            document.body.style.backgroundImage = `url('${imageUrl}')`;
+            // Add styles for better background display
+            document.body.style.backgroundSize = 'cover';
+            document.body.style.backgroundPosition = 'center center';
+            document.body.style.backgroundRepeat = 'no-repeat';
+            document.body.style.backgroundAttachment = 'fixed'; // Fix background during scroll
+        } else {
+            console.warn("No wallpaper images found.");
+            document.body.style.backgroundImage = 'none'; // Fallback
+        }
+    }

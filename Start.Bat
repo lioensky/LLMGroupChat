@@ -13,8 +13,8 @@ echo.
 echo 正在尝试启动 Python HTTP 服务器...
 echo.
 echo 将在以下地址提供服务:
-echo http://localhost:4086 (本机访问)
-echo http://<您的局域网IP地址>:4086 (局域网内其他设备访问)
+echo http://localhost:4090 (本机访问)
+echo http://<您的局域网IP地址>:4090 (局域网内其他设备访问)
 echo.
 echo 您需要查找本机的局域网 IP 地址 (通常类似 192.168.x.x)。
 echo 可以在命令提示符(cmd)中输入 'ipconfig' 查看 IPv4 地址。
@@ -28,7 +28,7 @@ echo ======================================
 echo.
 
 REM 使用 Python 3 启动 HTTP 服务器，监听端口 4086
-python -m http.server 4086
+python -m http.server 4090
 
 REM 如果 Python 命令失败或服务器停止，会执行到这里
 echo.
