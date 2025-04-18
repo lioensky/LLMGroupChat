@@ -999,32 +999,42 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 2. Extract Tags and create Regex (Moved down slightly)
+        // 2. Extract ALL individual tags from active models
+        const allIndividualTags = new Set();
+        activeModels.forEach(model => {
+            if (model.Tag && typeof model.Tag === 'string') {
+                model.Tag.split(',') // Split by comma
+                         .map(tag => tag.trim()) // Trim whitespace
+                         .filter(tag => tag) // Remove empty tags
+                         .forEach(tag => allIndividualTags.add(tag)); // Add to set for uniqueness
+            }
+        });
 
-        // 3. Extract Tags and create Regex
-        const aiTags = activeModels.map(m => m.Tag).filter(tag => tag); // Get tags from active models
-        if (aiTags.length === 0) {
-             console.warn("NatureRandom: No tags found in active models. Falling back to random subset.");
+        if (allIndividualTags.size === 0) {
+             console.warn("NatureRandom: No valid individual tags found in active models. Falling back to random subset.");
              // Fallback: Select a random subset if no tags are defined
              const subsetSize = Math.floor(Math.random() * activeModels.length) + 1;
              const shuffledIndices = activeModels.map((_, index) => index).sort(() => Math.random() - 0.5);
              const subsetIndices = shuffledIndices.slice(0, subsetSize);
              return subsetIndices.map(index => activeModels[index]);
         }
-        // Escape special regex characters in tags just in case
-        const escapedTags = aiTags.map(tag => tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-        const tagRegex = new RegExp(`(${escapedTags.join('|')})`, 'g'); // Match any of the tags
 
-        // 4. Find mentioned tags
+        // 3. Create Regex from individual tags
+        // Escape special regex characters in each individual tag
+        const escapedIndividualTags = Array.from(allIndividualTags).map(tag => tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        const tagRegex = new RegExp(`(${escapedIndividualTags.join('|')})`, 'g'); // Match any of the individual tags
+
+        // 4. Find mentioned tags in the last round's messages
         const userMentionedTags = new Set();
         const aiMentionedTags = new Set();
 
         lastRoundMessages.forEach(msg => {
             const text = msg.content?.text;
             if (text) {
+                // Use the regex to find matches for *any* individual tag
                 const matches = text.match(tagRegex);
                 if (matches) {
-                    const uniqueMatchesInMsg = new Set(matches); // Unique tags mentioned in this specific message
+                    const uniqueMatchesInMsg = new Set(matches); // Unique individual tags mentioned in this specific message
                     if (msg.role === 'user') {
                         uniqueMatchesInMsg.forEach(tag => userMentionedTags.add(tag));
                     } else { // AI message
@@ -1034,21 +1044,28 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 5. Determine next speakers
+        // 5. Determine next speakers based on mentioned *individual* tags
         const nextSpeakers = [];
         const mentionedSpeakers = new Set(); // Keep track of who is already added
 
-        // Priority 1: User mentioned (add in order found, or fixed order?) Let's use config order for consistency.
+        // Helper function to check if a model has any of the mentioned tags
+        const modelHasMentionedTag = (model, mentionedTagSet) => {
+            if (!model.Tag || typeof model.Tag !== 'string') return false;
+            const modelTags = model.Tag.split(',').map(t => t.trim()).filter(t => t);
+            return modelTags.some(tag => mentionedTagSet.has(tag));
+        };
+
+        // Priority 1: User mentioned (add if any of the model's tags were mentioned by user)
         activeModels.forEach(model => {
-            if (model.Tag && userMentionedTags.has(model.Tag)) {
+            if (modelHasMentionedTag(model, userMentionedTags)) {
                 nextSpeakers.push(model);
                 mentionedSpeakers.add(model.Name); // Track by Name to avoid duplicates
             }
         });
 
-        // Priority 2: AI mentioned (add if not already added)
+        // Priority 2: AI mentioned (add if not already added and any of the model's tags were mentioned by AI)
         activeModels.forEach(model => {
-            if (model.Tag && aiMentionedTags.has(model.Tag) && !mentionedSpeakers.has(model.Name)) {
+            if (!mentionedSpeakers.has(model.Name) && modelHasMentionedTag(model, aiMentionedTags)) {
                 nextSpeakers.push(model);
                 mentionedSpeakers.add(model.Name);
             }
