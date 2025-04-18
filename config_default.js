@@ -16,7 +16,7 @@ window.loadedConfig = { // 将配置赋给 window.loadedConfig
     models: [
         {
             Name: "猫娘小克",
-            Tag: "小克",  //用于上下位队列匹配
+            Tag: "小克,科普,知识，天文，物理，化学，数学，生物",  //用于上下位队列匹配
             Model: "gemini-2.5-pro-exp-03-25",
             Maxtoken: 100000,
             Outputtoken: 27890,
@@ -28,7 +28,7 @@ window.loadedConfig = { // 将配置赋给 window.loadedConfig
         },
         {
             Name: "犬娘小吉",
-            Tag: "小吉",
+            Tag: "小吉，评论，文化，社会，政治，心理，法律，哲学",
             Model: "gemini-2.5-pro-exp-03-25",
             Maxtoken: 100000,
             Outputtoken: 27890,
@@ -40,7 +40,7 @@ window.loadedConfig = { // 将配置赋给 window.loadedConfig
         },
 	    {
             Name: "蛇娘小冰",
-            Tag: "小冰",
+            Tag: "小冰，游戏，动漫，御宅，动画，萌，吐槽",
             Model: "gemini-2.5-pro-exp-03-25",
             Maxtoken: 100000,
             Outputtoken: 27890,
@@ -52,7 +52,7 @@ window.loadedConfig = { // 将配置赋给 window.loadedConfig
         },
         {
             Name: "龙娘小娜",
-            Tag: "小娜",
+            Tag: "小娜，莱恩家，管理，女仆长",
             Model: "gemini-2.5-pro-exp-03-25",
             Maxtoken: 100000,
             Outputtoken: 27890,
@@ -64,7 +64,7 @@ window.loadedConfig = { // 将配置赋给 window.loadedConfig
         },
         {
             Name: "鸟娘小雨",
-            Tag: "小雨",
+            Tag: "小雨，写作，故事，创作，文案",
             Model: "gemini-2.5-pro-exp-03-25",
             Maxtoken: 100000,
             Outputtoken: 27890,
