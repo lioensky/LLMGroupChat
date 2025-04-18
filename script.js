@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     newChatButton.addEventListener('click', createNewSession);
     sessionSelect.addEventListener('change', (e) => switchSession(e.target.value));
     // Config change listener is added during initialization
-    attachImageButton.addEventListener('click', () => imageInput.click()); // Trigger file input
+    // attachImageButton click listener removed, label 'for' attribute handles it now.
     imageInput.addEventListener('change', handleImageSelection); // Handle file selection
     removeImageButton.addEventListener('click', removeSelectedImage); // Handle image removal
     messageInput.addEventListener('keydown', (e) => {

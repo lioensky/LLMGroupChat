@@ -259,13 +259,31 @@ body {
      background-color: #e67e22;
 }
 
-/* Global specific styles for Attach button */
-#attach-image-button {
-    background-color: #6c757d;
-    font-size: 1.0em; /* Adjust icon size */
+/* Styles for Attach button (label) to match NEW button */
+#attach-image-button { /* ID selector still works on the label */
+    /* --- Copy common styles from .left-input-buttons button --- */
+    padding: 0; /* Reset label padding */
+    border-radius: 8px; /* Explicitly add rounded rectangle */
+    height: 32px; /* Explicitly set height */
+    width: 36px;  /* Explicitly set width */
+    flex-shrink: 0;
+    display: flex; /* Use flex for alignment */
+    align-items: center; /* Center content vertically */
+    justify-content: center; /* Center content horizontally */
+    box-sizing: border-box;
+    border: none; /* Remove default label border */
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    /* --- Copy specific styles from #new-chat-button --- */
+    background-color: #f39c12; /* Match NEW button background */
+    font-size: 0.7em; /* Match NEW button font size */
+    font-weight: bold; /* Match NEW button font weight */
+    color: white; /* Explicitly set text color to white */
+    /* Note: The text "File" might need a slightly larger font-size than "NEW" */
+    /* You can adjust the font-size here if needed, e.g., font-size: 0.8em; */
 }
 #attach-image-button:hover {
-     background-color: #5a6268;
+     background-color: #e67e22; /* Match NEW button hover */
 }
 
 
@@ -490,6 +508,7 @@ body {
         border-radius: 0; /* Remove rounded corners */
         box-shadow: none; /* Remove shadow */
         padding-top: 50px; /* Reduced padding to match the slimmer floating bar */
+        margin-left: 0; /* Reset left margin for mobile */
     }
 
     #chat-header {
@@ -582,6 +601,10 @@ body {
     /* Keep specific mobile style overrides if needed below */
     /* #attach-image-button { ... } */
     /* #new-chat-button { ... } */
+    /* Ensure attach button (label) also gets mobile border-radius */
+    #attach-image-button {
+        border-radius: 18px; /* Match other mobile buttons */
+    }
 
 
     #message-input {
@@ -647,8 +670,8 @@ body {
         /* gap: 10px; /* Space between AI items - overridden by justify-content? Use margin/padding on items if needed */
         width: 100%; /* Take full width */
         padding: 5px 0; /* Add some vertical padding */
-        position: relative; /* Enable offset positioning */
-        left: -10px; /* Shift the centered content left */
+        /* position: relative; /* Removed */
+        /* left: -10px; /* Removed - justify-content: center should handle centering */
     }
 
     .ai-status-item {
@@ -713,4 +736,9 @@ body {
     background-color: rgba(0, 123, 255, 0.1); /* Optional: subtle background highlight */
     padding: 1px 3px; /* Optional: add some padding */
     border-radius: 3px; /* Optional: rounded corners */
+}
+/* Generic label styles removed, specific styles applied above */
+/* Ensure the hidden file input doesn't affect layout (keep this part) */
+#image-input {
+    display: none;
 }

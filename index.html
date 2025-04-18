@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 群聊室</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Favicon Links -->
+    <link rel="icon" type="image/png" sizes="16x16" href="image/icons/icon16.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="image/icons/icon48.png">
+    <link rel="icon" type="image/png" sizes="128x128" href="image/icons/icon128.png">
+    <link rel="apple-touch-icon" sizes="128x128" href="image/icons/icon128.png">
 </head>
 <body id="ai-group-chat-project">
     <div id="chat-container">
@@ -32,7 +37,7 @@
                 <!-- Wrapper for left-side buttons -->
                 <div class="left-input-buttons">
                      <button id="new-chat-button" title="开始新的聊天">NEW</button>
-                     <button id="attach-image-button" title="添加文件">File</button>
+                     <label for="image-input" id="attach-image-button" class="button-like-label" title="添加文件">File</label> <!-- Changed to label -->
                 </div>
                 <textarea id="message-input" placeholder="输入你的消息..." rows="1"></textarea> <!-- Start with 1 row -->
                 <button id="send-button" title="发送消息">发送</button>
