@@ -1101,22 +1101,31 @@ document.addEventListener('DOMContentLoaded', () => {
             return text; // Return original text if invalid input or config not ready
         }
 
-        // 1. Get all valid tags from config, filter out empty/null tags
-        const validTags = config.models.map(m => m.Tag).filter(tag => tag && typeof tag === 'string' && tag.trim() !== '');
+        // 1. Extract ALL individual tags from active models
+        const allIndividualTags = new Set();
+        activeModels.forEach(model => {
+            if (model.Tag && typeof model.Tag === 'string') {
+                model.Tag.split(',') // Split by comma
+                         .map(tag => tag.trim()) // Trim whitespace
+                         .filter(tag => tag) // Remove empty tags
+                         .forEach(tag => allIndividualTags.add(tag)); // Add to set for uniqueness
+            }
+        });
 
-        // 2. Escape special regex characters in tags
-        const escapedTags = validTags.map(tag => tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        // 2. Escape special regex characters in each individual tag
+        const escapedIndividualTags = Array.from(allIndividualTags).map(tag => tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
 
-        // 3. Create the regex pattern: @所有人 OR @tag1 OR @tag2 ...
-        // Ensure tags are included only if the list is not empty
-        const tagPatternPart = escapedTags.length > 0 ? `|@(?:${escapedTags.join('|')})` : '';
-        const mentionRegex = new RegExp(`(@所有人${tagPatternPart})(?![\\w-])`, 'g'); // Match mentions not followed by more word chars/hyphen
+        // 3. Create the regex pattern: @所有人 OR @individualTag1 OR @individualTag2 ...
+        // Ensure individual tags are included only if the set is not empty
+        const tagPatternPart = escapedIndividualTags.length > 0 ? `|@(?:${escapedIndividualTags.join('|')})` : '';
+        // Match @所有人 OR @ followed by one of the individual tags.
+        // Use (?![\\w-]) lookahead to ensure the tag isn't part of a larger word/identifier.
+        const mentionRegex = new RegExp(`(@所有人${tagPatternPart})(?![\\w-])`, 'g');
 
         // 4. Replace matches with highlighted span
-        // Using a function in replace allows checking if the match is valid before wrapping
         return text.replace(mentionRegex, (match) => {
-             // Optional: Add extra validation here if needed, e.g., check against a dynamic list
-             return `<span class="mention-highlight">${match}</span>`;
+            // The regex now correctly captures valid mentions (@所有人 or @individualTag)
+            return `<span class="mention-highlight">${match}</span>`;
         });
     }
 
