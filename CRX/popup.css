@@ -1,0 +1,200 @@
+body {
+    font-family: sans-serif;
+    width: 400px; /* 调整宽度 */
+    padding: 10px;
+    background-color: #f4f4f4;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-top: 0;
+}
+
+#status-message {
+    text-align: center;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+#session-list-container {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+label {
+    margin-right: 5px;
+    font-weight: bold;
+}
+
+select, button {
+    padding: 8px 12px;
+    margin: 5px 2px; /* 调整按钮间距 */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+select {
+    min-width: 150px; /* 给下拉列表一个最小宽度 */
+}
+
+button {
+    background-color: #007bff;
+    color: white;
+    transition: background-color 0.2s ease;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+#delete-session-button {
+    background-color: #dc3545;
+}
+#delete-session-button:hover {
+    background-color: #c82333;
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background-color: #eee;
+    margin: 15px 0;
+}
+
+h2 {
+    color: #444;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+#session-content {
+    max-height: 300px; /* 限制内容区域高度 */
+    overflow-y: auto; /* 添加滚动条 */
+    border: 1px solid #eee;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    white-space: pre-wrap; /* 保留换行和空格 */
+    word-wrap: break-word; /* 长单词换行 */
+}
+
+/* 为聊天记录添加一些样式 */
+.message-item {
+    margin-bottom: 10px;
+    padding: 8px;
+    border-radius: 4px;
+    position: relative; /* Needed for absolute positioning of edit button */
+}
+.user-message {
+    background-color: #e1f5fe; /* 淡蓝色背景 */
+    text-align: left;
+}
+.ai-message {
+    background-color: #f0f4c3; /* 淡黄色背景 */
+    text-align: left;
+}
+.message-sender {
+    font-weight: bold;
+    margin-bottom: 4px;
+    display: block; /* 确保名字单独一行 */
+}
+.message-text {
+    /* 样式已由 #session-content 处理 */
+}
+.message-image {
+    max-width: 100%;
+    max-height: 150px;
+    display: block;
+    margin-top: 5px;
+    border-radius: 4px;
+}
+
+/* Edit Button Style */
+.edit-message-button,
+.delete-message-button { /* Apply common styles to both */
+    position: absolute;
+    top: 5px;
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 0.9em;
+    padding: 2px 5px;
+    display: none; /* Initially hidden */
+    border-radius: 3px;
+}
+
+/* Position the buttons */
+.edit-message-button {
+    right: 30px; /* Move edit button slightly left */
+}
+.delete-message-button {
+    right: 5px; /* Place delete button to the far right */
+    color: #dc3545; /* Give delete button a red hint */
+}
+
+
+.message-item:hover .edit-message-button,
+.message-item:hover .delete-message-button { /* Show both on hover */
+    display: inline-block; /* Show on hover */
+    background-color: rgba(0, 0, 0, 0.08); /* Slight background on hover */
+}
+
+.edit-message-button:hover {
+    color: #333;
+    background-color: rgba(0, 0, 0, 0.15);
+}
+
+.delete-message-button:hover {
+    color: #c82333; /* Darker red on hover */
+    background-color: rgba(220, 53, 69, 0.15); /* Light red background on hover */
+}
+
+/* Inline Editing Styles */
+.message-item textarea.edit-textarea {
+    width: calc(100% - 16px); /* Adjust width considering padding */
+    min-height: 50px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 6px;
+    font-family: inherit;
+    font-size: inherit;
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+.message-item .edit-controls {
+    margin-top: 5px;
+    text-align: right;
+}
+
+.message-item .edit-controls button {
+    margin-left: 5px;
+    padding: 4px 8px;
+    font-size: 0.9em;
+}
+
+.message-item .edit-controls .save-edit-button {
+    background-color: #28a745; /* Green */
+}
+.message-item .edit-controls .save-edit-button:hover {
+    background-color: #218838;
+}
+
+.message-item .edit-controls .cancel-edit-button {
+    background-color: #6c757d; /* Gray */
+}
+.message-item .edit-controls .cancel-edit-button:hover {
+    background-color: #5a6268;
+}

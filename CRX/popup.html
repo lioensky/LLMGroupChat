@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聊天历史管理</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <h1>AI 群聊历史</h1>
+    <div id="status-message">正在查找聊天页面...</div>
+    <div id="session-list-container" style="display: none;">
+        <label for="session-select">选择会话:</label>
+        <select id="session-select"></select>
+        <button id="refresh-button" title="刷新会话列表">刷新</button>
+        <button id="delete-session-button" title="删除当前会话">删除会话</button>
+        <hr>
+        <h2>会话内容:</h2>
+        <div id="session-content">
+            <!-- 聊天记录将显示在这里 -->
+        </div>
+        <hr>
+        <button id="export-current-button" title="导出当前选中的会话为 JSON">导出当前</button>
+        <button id="export-all-button" title="导出所有会话为 JSON">导出全部</button>
+        <button id="import-replace-button" title="导入并替换所有会话 (JSON)">导入并替换</button> <!-- Renamed -->
+        <button id="import-merge-button" title="导入并合并会话 (可多选 JSON)">导入并合并</button> <!-- Added -->
+        <input type="file" id="import-file-input" accept=".json" style="display: none;" multiple> <!-- Added multiple attribute -->
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
