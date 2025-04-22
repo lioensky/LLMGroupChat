@@ -505,15 +505,18 @@ document.addEventListener('DOMContentLoaded', () => {
             contentElement.classList.add('content'); // Keep this class if needed
             // Use innerHTML and marked.parse to render Markdown
             // Highlight mentions before parsing Markdown
-            const highlightedText = highlightMentions(textContent || '');
+            let highlightedText = highlightMentions(textContent || '');
+            // Preprocess to add space after tilde if followed by non-space, to break strikethrough
+            const preprocessedText = highlightedText.replace(/~(\S)/g, '~ $1');
             if (typeof marked !== 'undefined') {
                 // Use innerHTML for parsed Markdown which now includes the highlight spans
-                contentElement.innerHTML = marked.parse(highlightedText);
+                contentElement.innerHTML = marked.parse(preprocessedText); // Use preprocessed text
             } else {
                 // Fallback: Directly set innerHTML if marked is not loaded,
                 // as highlightMentions already returns HTML.
                 // Still replace newlines for basic formatting.
-                contentElement.innerHTML = highlightedText.replace(/\n/g, '<br>');
+                // Apply preprocessing here too for consistency if marked fails
+                contentElement.innerHTML = preprocessedText.replace(/\n/g, '<br>');
             }
 
 
@@ -562,15 +565,18 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update text content using marked.parse
             if (typeof marked !== 'undefined') {
                  // Highlight mentions before parsing Markdown
-                 const highlightedText = highlightMentions(textContent || '');
+                 let highlightedText = highlightMentions(textContent || '');
+                 // Preprocess to add space after tilde if followed by non-space, to break strikethrough
+                 const preprocessedText = highlightedText.replace(/~(\S)/g, '~ $1');
                  if (typeof marked !== 'undefined') {
                      // Use innerHTML for parsed Markdown which now includes the highlight spans
-                     contentElement.innerHTML = marked.parse(highlightedText);
+                     contentElement.innerHTML = marked.parse(preprocessedText); // Use preprocessed text
                  } else {
                      // Fallback: Directly set innerHTML if marked is not loaded,
                      // as highlightMentions already returns HTML.
                      // Still replace newlines for basic formatting.
-                     contentElement.innerHTML = highlightedText.replace(/\n/g, '<br>');
+                     // Apply preprocessing here too for consistency if marked fails
+                     contentElement.innerHTML = preprocessedText.replace(/\n/g, '<br>');
                  }
             }
 
