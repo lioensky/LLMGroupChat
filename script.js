@@ -762,14 +762,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const spokenThisTurnTracker = new Set(); // Tracks AI names added to 'speakers' to avoid duplicates and respect priorities
 
         // Get text from the last message (usually user's input, or AI's if it's a continuation that triggers others)
-        const lastMessage = currentChatHistory.length > 0 ? currentChatHistory[currentChatHistory.length - 1] : null;
-        const messageText = (lastMessage && lastMessage.content && lastMessage.content.text) ? lastMessage.content.text : "";
+        // Get text from the last round of messages (user input + preceding AI responses in the same turn)
+        let roundText = "";
+        // Iterate backwards from the last message
+        for (let i = currentChatHistory.length - 1; i >= 0; i--) {
+            const msg = currentChatHistory[i];
+            const msgContentText = (msg.content && msg.content.text) ? msg.content.text : "";
+
+            if (msgContentText) {
+                // Prepend message text to roundText. Add a space for separation.
+                roundText = msgContentText + (roundText ? " " + roundText : "");
+            }
+
+            // Stop if we hit a user message that is NOT the very last message.
+            // The very last message is the one that triggered this response cycle, so we include it.
+            // Any user message before the last one marks the start of the previous round.
+            if (msg.role === 'user' && i < currentChatHistory.length - 1) {
+                break;
+            }
+        }
 
         // --- Priority: @角色标签 (e.g., @小克) ---
         // "被@的角色...必须发言。并且优先发言！"
-        if (messageText) {
+        if (roundText) {
             eligibleModels.forEach(model => {
-                if (messageText.includes(`@${model.Name}`)) { // Assumes model.Name is the "角色标签"
+                if (roundText.includes(`@${model.Name}`)) { // Assumes model.Name is the "角色标签"
                     if (!spokenThisTurnTracker.has(model.Name)) {
                         speakers.push(model);
                         spokenThisTurnTracker.add(model.Name);
@@ -780,12 +797,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- Priority: Pure Text Keyword Mention (from model.Tag) ---
         // "拥有该关键词标签的角色...则必须发言。"
-        if (messageText) {
+        if (roundText) {
             eligibleModels.forEach(model => {
                 if (spokenThisTurnTracker.has(model.Name)) return; // Already added by @mention
 
                 const tags = (model.Tag || "").split(',').map(t => t.trim()).filter(t => t);
-                if (tags.some(tag => messageText.includes(tag))) {
+                if (tags.some(tag => roundText.includes(tag))) {
                     speakers.push(model);
                     spokenThisTurnTracker.add(model.Name);
                 }
