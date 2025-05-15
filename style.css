@@ -10,10 +10,10 @@ body {
 }
 
 #chat-container {
-    width: 95%; /* 左右加宽多一点 */
-    max-width: 1100px; /* 左右加宽多一点 */
-    height: 92vh; /* 上下加高一点点 */
-    max-height: 950px; /* 上下加高一点点 */
+    width: 110%; /* 左右加宽 15% */
+    max-width: 1265px; /* 左右加宽 15% */
+    height: 96vh; /* 上下边界距离缩小一半 */
+    max-height: 980px; /* 调整最大高度以保持比例 */
     /* background-color: #fff; */ /* Removed for background image */
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -767,4 +767,247 @@ body {
 /* 可选：为奇数行添加微弱背景色，增加可读性 */
 .message-content tr:nth-child(odd) td {
     background-color: rgba(0, 0, 0, 0.02);
+}
+/* Night Mode Styles */
+body.night-mode {
+    background-color: #1e1e1e;
+    color: #eee;
+}
+
+.night-mode #chat-container {
+    background-color: #2d2d2d;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.night-mode #chat-header {
+    background-color: #3a3a3a;
+    border-bottom-color: #555;
+}
+
+.night-mode #chat-header h1 {
+    color: #eee;
+}
+
+.night-mode #chat-session-select,
+.night-mode #config-select {
+    border-color: rgba(255, 255, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #eee;
+}
+
+.night-mode #chat-session-select option {
+    background-color: #3a3a3a;
+    color: #eee;
+}
+
+.night-mode #ai-status span {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.night-mode #chat-messages {
+    border-bottom-color: #555;
+}
+
+.night-mode .message .sender {
+    color: #bbb;
+}
+
+.night-mode .ai-message .sender {
+    color: #8ab4f8; /* Lighter blue for AI sender */
+}
+
+.night-mode .user-message .sender {
+    color: #a5d6a7; /* Lighter green for User sender */
+}
+
+.night-mode .user-message .message-content {
+    background-color: rgba(60, 60, 60, 0.7); /* Darker semi-transparent */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.night-mode .ai-message .message-content {
+    background-color: rgba(45, 45, 45, 0.6); /* Darker more transparent */
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.night-mode #input-wrapper {
+    border-top-color: #555;
+    background-color: #3a3a3a;
+}
+
+.night-mode #image-preview-area {
+    border-color: #555;
+}
+
+.night-mode #image-preview {
+    border-color: #555;
+}
+
+.night-mode #remove-image-button {
+    background-color: rgba(255, 255, 255, 0.3);
+    color: #1e1e1e;
+}
+
+.night-mode #remove-image-button:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+.night-mode #chat-input-area {
+    /* No specific changes needed unless elements within need adjustment */
+}
+
+.night-mode .left-input-buttons button {
+    background-color: #555;
+    color: #eee;
+}
+
+.night-mode .left-input-buttons button:hover {
+    background-color: #666;
+}
+
+.night-mode #new-chat-button,
+.night-mode #attach-image-button {
+     background-color: #f39c12; /* Keep orange for visibility */
+}
+.night-mode #new-chat-button:hover,
+.night-mode #attach-image-button:hover {
+     background-color: #e67e22; /* Keep orange hover */
+}
+
+
+.night-mode #message-input {
+    border-color: #555;
+    background-color: #4a4a4a;
+    color: #eee;
+}
+
+.night-mode #send-button {
+    background-color: #4a90e2; /* Keep blue for visibility */
+}
+.night-mode #send-button:hover {
+    background-color: #357abd; /* Keep blue hover */
+}
+
+
+.night-mode #ai-buttons button {
+    border-color: #555;
+    background-color: #4a4a4a;
+    color: #eee;
+}
+
+.night-mode #ai-buttons button:hover {
+    background-color: #555;
+}
+
+.night-mode .loading-indicator {
+    border-color: rgba(255, 255, 255, 0.3);
+    border-top-color: #eee;
+}
+
+.night-mode #floating-ai-status-window {
+    background-color: rgba(45, 45, 45, 0.9);
+    border-color: #555;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+}
+
+.night-mode #floating-ai-status-window h4 {
+    color: #eee;
+    border-bottom-color: #555;
+}
+
+.night-mode .ai-status-item {
+    background-color: #3a3a3a;
+}
+
+.night-mode .ai-status-item .close-ai-btn {
+    background-color: #ff6b6b; /* Keep red */
+}
+.night-mode .ai-status-item .close-ai-btn:hover {
+    background-color: #e05252; /* Keep red hover */
+}
+.night-mode .ai-status-item .close-ai-btn.excluded-next-round {
+    background-color: #666; /* Darker grey */
+}
+.night-mode .ai-status-item .close-ai-btn.excluded-next-round:hover {
+     background-color: #555; /* Even darker grey on hover */
+}
+
+.night-mode .ai-status-item .mute-ai-btn {
+    background-color: #ffae42; /* Keep orange */
+}
+.night-mode .ai-status-item .mute-ai-btn.muted {
+    background-color: #888; /* Keep grey when muted */
+}
+.night-mode .ai-status-item .mute-ai-btn:hover:not(.muted) {
+    background-color: #ff9a1f; /* Keep orange hover */
+}
+.night-mode .ai-status-item .mute-ai-btn:hover.muted {
+    background-color: #666; /* Keep grey hover */
+}
+
+/* Mobile Night Mode Overrides */
+@media (max-width: 768px) {
+    .night-mode #floating-ai-status-window {
+        background-color: rgba(30, 30, 30, 1); /* Darker background for mobile bar */
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+}
+
+/* Markdown Table Styles for Night Mode */
+.night-mode .message-content table {
+    border: 1px solid rgba(255, 255, 255, 0.2); /* Lighter border */
+}
+
+.night-mode .message-content th,
+.night-mode .message-content td {
+    border: 1px solid rgba(255, 255, 255, 0.15); /* Even lighter border */
+}
+
+.night-mode .message-content th {
+    background-color: rgba(255, 255, 255, 0.05); /* Lighter header background */
+}
+
+.night-mode .message-content tr:nth-child(odd) td {
+    background-color: rgba(255, 255, 255, 0.02); /* Lighter odd row background */
+}
+/* Daily Note Bubble Styles */
+.daily-note-bubble {
+    background-color: rgba(255, 250, 240, 0.105); /* 浅米色背景 */
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 10px 15px;
+    margin: 5px 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    font-style: italic;
+}
+
+/* Tool Use Bubble Styles */
+.tool-use-bubble {
+    background-color: rgba(220, 230, 240, 0.122); /* 浅蓝色背景 */
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin: 5px 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    font-style: normal;
+    color: #2c3e50; /* 深色文本 */
+}
+
+/* Night Mode for Daily Note Bubble */
+.night-mode .daily-note-bubble {
+    background-color: rgba(60, 55, 45, 0.179); /* 深米色背景 */
+    border: 1px solid rgba(255, 255, 255, 0.052);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.073);
+}
+
+/* Night Mode for Tool Use Bubble */
+.night-mode .tool-use-bubble {
+    background-color: rgba(50, 60, 70, 0.192); /* 深蓝色背景 */
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    color: #ecf0f1; /* 浅色文本 */
 }
