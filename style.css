@@ -10,10 +10,10 @@ body {
 }
 
 #chat-container {
-    width: 110%; /* 左右加宽 15% */
-    max-width: 1265px; /* 左右加宽 15% */
-    height: 96vh; /* 上下边界距离缩小一半 */
-    max-height: 980px; /* 调整最大高度以保持比例 */
+    width: 120%; /* 左右加宽 15% */
+    max-width: 1405px; /* 左右加宽 15% */
+    height: 95vh; /* 进一步缩小上下边界距离 */
+    max-height: 1160px; /* 调整最大高度以适应更高分辨率 */
     /* background-color: #fff; */ /* Removed for background image */
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -298,7 +298,7 @@ body {
     /* height: 68px; Removed fixed height, rely on stretch */
     max-height: 80px; /* Limit max height */
     overflow-y: auto;
-    font-size: 0.95em; /* Default font size */
+    font-size: 1em; /* Default font size */
     line-height: 1.4;
     box-sizing: border-box; /* Ensure padding/border are included in height calculation */
 }
@@ -970,6 +970,17 @@ body.night-mode {
 .night-mode .message-content tr:nth-child(odd) td {
     background-color: rgba(255, 255, 255, 0.02); /* Lighter odd row background */
 }
+
+/* Force wrapping for preformatted text/code within messages */
+.message-content pre code {
+    white-space: pre-wrap; /* Standard way to wrap preformatted text */
+    word-wrap: break-word; /* Fallback for older browsers */
+    font-family: sans-serif; /* Use the standard sans-serif font */
+    font-size: 1em; /* Set font size explicitly to match message content */
+    line-height: inherit; /* Inherit line height from parent */
+    font-weight: normal; /* Ensure it's not bold unless explicitly marked in content */
+}
+
 /* Daily Note Bubble Styles */
 .daily-note-bubble {
     background-color: rgba(255, 250, 240, 0.105); /* 浅米色背景 */
@@ -995,6 +1006,9 @@ body.night-mode {
     -webkit-backdrop-filter: blur(5px);
     font-style: normal;
     color: #2c3e50; /* 深色文本 */
+    display: inline-block; /* 确保气泡正确显示 */
+    width: auto; /* 宽度自适应内容 */
+    overflow-wrap: break-word; /* 确保文本换行 */
 }
 
 /* Night Mode for Daily Note Bubble */
